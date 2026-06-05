@@ -1,0 +1,299 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Sport {
+  CRICKET
+  KABADDI
+  FOOTBALL
+  BADMINTON
+  VOLLEYBALL
+  BASKETBALL
+  TENNIS
+  OTHER
+}
+
+enum SurfaceType {
+  TURF
+  CONCRETE
+  CLAY
+  SYNTHETIC
+  GRASS
+}
+
+enum SlotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum NotificationType {
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  MESSAGE
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+
+model User {
+  id String @id @default(cuid())
+
+  phone       String  @unique
+  fullName    String
+  username    String  @unique
+  bio         String?
+
+  dateOfBirth DateTime
+  gender      Gender
+  profilePhotoUrl String?
+
+  country     String
+  state       String
+  city        String
+  area        String?
+  pincode     String
+  latitude    Float?
+  longitude   Float?
+
+  passwordHash    String?
+  isVerified      Boolean @default(false)
+  fcmToken        String?
+
+  isGroundOwner   Boolean @default(false)
+
+  isActive        Boolean   @default(true)
+  lastActiveAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sports        UserSport[]
+  ownedGrounds  Ground[]       @relation("GroundOwner")
+  slotBookings  GroundSlot[]   @relation("SlotBooker")
+  sentMessages     Message[]   @relation("MessageSender")
+  receivedMessages Message[]   @relation("MessageReceiver")
+  sentConnections     Connection[] @relation("ConnectionRequester")
+  receivedConnections Connection[] @relation("ConnectionReceiver")
+  notifications       Notification[] @relation("NotificationUser")
+  notificationsFrom   Notification[] @relation("NotificationFrom")
+
+  @@index([username])
+  @@index([phone])
+  @@index([city])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// USER SPORT
+// ─────────────────────────────────────────────
+
+model UserSport {
+  id     String @id @default(cuid())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  sport         Sport
+  skillLevel    SkillLevel?
+  preferredRole String?
+
+  matchesPlayed Int @default(0)
+  matchesWon    Int @default(0)
+  rating        Float @default(0)
+
+  stats Json?
+
+  joinedAt  DateTime @default(now())
+
+  @@unique([userId, sport])
+  @@index([userId])
+  @@index([sport])
+  @@map("user_sports")
+}
+
+// ─────────────────────────────────────────────
+// GROUND
+// ─────────────────────────────────────────────
+
+model Ground {
+  id String @id @default(cuid())
+
+  owner   User   @relation("GroundOwner", fields: [ownerId], references: [id])
+  ownerId String
+
+  name        String
+  description String?
+
+  addressLine String
+  city        String
+  state       String
+  pincode     String
+
+  latitude    Float
+  longitude   Float
+
+  supportedSports Sport[]
+  amenities       String[]
+  surfaceType     SurfaceType?
+  isIndoor        Boolean @default(false)
+
+  capacity Json?
+
+  pricePerHour Float
+  currency     String @default("INR")
+
+  photos String[]
+
+  rules               String?
+  cancellationPolicy  String?
+  contactPhone        String
+
+  isVerified Boolean @default(false)
+  isActive   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  slots GroundSlot[]
+
+  @@index([ownerId])
+  @@index([city])
+  @@index([pincode])
+  @@index([isActive, isVerified])
+  @@map("grounds")
+}
+
+// ─────────────────────────────────────────────
+// GROUND SLOT
+// ─────────────────────────────────────────────
+
+model GroundSlot {
+  id String @id @default(cuid())
+
+  ground   Ground @relation(fields: [groundId], references: [id], onDelete: Cascade)
+  groundId String
+
+  sport     Sport
+  slotDate  DateTime
+  startTime DateTime
+  endTime   DateTime
+
+  priceOverride Float?
+
+  status SlotStatus @default(AVAILABLE)
+
+  bookedBy   User?   @relation("SlotBooker", fields: [bookedById], references: [id])
+  bookedById String?
+  bookingId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groundId, slotDate, status])
+  @@index([groundId, sport])
+  @@index([status])
+  @@map("ground_slots")
+}
+
+// ─────────────────────────────────────────────
+// MESSAGE
+// ─────────────────────────────────────────────
+
+model Message {
+  id         String        @id @default(cuid())
+
+  from       User          @relation("MessageSender",   fields: [fromId], references: [id], onDelete: Cascade)
+  fromId     String
+
+  to         User          @relation("MessageReceiver", fields: [toId],   references: [id], onDelete: Cascade)
+  toId       String
+
+  content    String
+  read       Boolean       @default(false)
+  status     MessageStatus @default(SENT)
+
+  deletedForSender   Boolean @default(false)
+  deletedForReceiver Boolean @default(false)
+  deletedForEveryone Boolean @default(false)
+
+  forwardedFromId    String?
+  forwardedFrom      Message?  @relation("MessageForwards", fields: [forwardedFromId], references: [id], onDelete: SetNull)
+  forwards           Message[] @relation("MessageForwards")
+
+  createdAt  DateTime @default(now())
+
+  @@index([fromId, toId])
+  @@index([toId, fromId])
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────
+// CONNECTION (friend requests)
+// ─────────────────────────────────────────────
+
+model Connection {
+  id          String           @id @default(cuid())
+  requester   User             @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requesterId String
+  receiver    User             @relation("ConnectionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId  String
+  status      ConnectionStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([requesterId, receiverId])
+  @@index([receiverId, status])
+  @@index([requesterId, status])
+  @@map("connections")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────────
+
+model Notification {
+  id         String           @id @default(cuid())
+  user       User             @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  fromUser   User?            @relation("NotificationFrom", fields: [fromUserId], references: [id], onDelete: SetNull)
+  fromUserId String?
+  type       NotificationType
+  data       Json?
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
