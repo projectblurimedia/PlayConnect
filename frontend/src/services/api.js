@@ -31,8 +31,8 @@ export const loginUser = async (payload) => {
   return res.data
 }
 
-export const sendOTP = async (phone) => {
-  const res = await api.post('/api/auth/otp/send', { phone })
+export const sendOTP = async (email) => {
+  const res = await api.post('/api/auth/otp/send', { email })
   return res.data
 }
 
@@ -41,8 +41,8 @@ export const verifyOTP = async (payload) => {
   return res.data
 }
 
-export const forgotPasswordSendOTP = async (phone) => {
-  const res = await api.post('/api/auth/forgot-password/send', { phone })
+export const forgotPasswordSendOTP = async (email) => {
+  const res = await api.post('/api/auth/forgot-password/send', { email })
   return res.data
 }
 

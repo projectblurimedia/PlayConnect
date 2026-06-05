@@ -29,9 +29,9 @@ function TextInput({ style, ...props }) {
 export default function ForgotPasswordScreen() {
   const router = useRouter()
 
-  const [step,         setStep]         = useState('phone')   // 'phone' | 'reset'
-  const [phone,        setPhone]        = useState('')
-  const [maskedPhone,  setMaskedPhone]  = useState('')
+  const [step,         setStep]         = useState('email')   // 'email' | 'reset'
+  const [email,        setEmail]        = useState('')
+  const [maskedEmail,  setMaskedEmail]  = useState('')
   const [otp,          setOtp]          = useState(['', '', '', '', '', ''])
   const [newPassword,  setNewPassword]  = useState('')
   const [confirmPass,  setConfirmPass]  = useState('')
@@ -54,16 +54,16 @@ export default function ForgotPasswordScreen() {
 
   // ── Step 1: send OTP ──────────────────────────────────────────────────────
   const handleSendOTP = async () => {
-    const digits = phone.replace(/\D/g, '')
-    if (digits.length < 10) {
-      Alert.alert('Invalid Number', 'Please enter a valid 10-digit phone number.')
+    const trimmed = email.trim().toLowerCase()
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.')
       return
     }
     setLoading(true)
     try {
-      const res = await forgotPasswordSendOTP(digits)
+      const res = await forgotPasswordSendOTP(trimmed)
       if (res.success) {
-        setMaskedPhone(res.maskedPhone)
+        setMaskedEmail(res.maskedEmail)
         setStep('reset')
         startCountdown()
         setTimeout(() => otpRefs.current[0]?.focus(), 300)
@@ -115,7 +115,7 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(true)
     try {
-      const res = await resetPassword({ phone: phone.replace(/\D/g, ''), otp: code, newPassword })
+      const res = await resetPassword({ email: email.trim().toLowerCase(), otp: code, newPassword })
       if (res.success) {
         Alert.alert('Success', res.message || 'Password reset successfully!', [
           { text: 'Login', onPress: () => router.replace('/(auth)/login') },
@@ -151,9 +151,9 @@ export default function ForgotPasswordScreen() {
           </View>
           <Text style={styles.headerTitle}>Forgot Password</Text>
           <Text style={styles.headerSub}>
-            {step === 'phone'
-              ? 'Enter your registered phone number'
-              : `Set a new password for +91 ${maskedPhone}`}
+            {step === 'email'
+              ? 'Enter your registered email address'
+              : `Set a new password for ${maskedEmail}`}
           </Text>
         </View>
       </LinearGradient>
@@ -162,22 +162,21 @@ export default function ForgotPasswordScreen() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
 
-            {step === 'phone' ? (
+            {step === 'email' ? (
               /* ── Step 1 ─── */
               <>
-                <Text style={styles.label}>Phone Number</Text>
-                <View style={styles.phoneRow}>
-                  <View style={styles.countryCode}>
-                    <Text style={styles.countryCodeText}>+91</Text>
-                  </View>
+                <Text style={styles.label}>Email Address</Text>
+                <View style={styles.emailRow}>
+                  <Ionicons name="mail-outline" size={20} color={ACCENT} style={styles.emailIcon} />
                   <TextInput
-                    style={styles.phoneInput}
-                    placeholder="10-digit number"
+                    style={styles.emailInput}
+                    placeholder="your@email.com"
                     placeholderTextColor="#bbb"
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                    maxLength={10}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     autoFocus
                   />
                 </View>
@@ -196,11 +195,11 @@ export default function ForgotPasswordScreen() {
             ) : (
               /* ── Step 2 ─── */
               <>
-                {/* Masked phone */}
-                <Text style={styles.label}>Registered Number</Text>
-                <View style={styles.maskedPhoneBox}>
-                  <Ionicons name="phone-portrait-outline" size={18} color={ACCENT} style={{ marginRight: 10 }} />
-                  <Text style={styles.maskedPhoneText}>+91 {maskedPhone}</Text>
+                {/* Masked email */}
+                <Text style={styles.label}>Registered Email</Text>
+                <View style={styles.maskedEmailBox}>
+                  <Ionicons name="mail-outline" size={18} color={ACCENT} style={{ marginRight: 10 }} />
+                  <Text style={styles.maskedEmailText}>{maskedEmail}</Text>
                   <View style={styles.lockedBadge}>
                     <Ionicons name="lock-closed" size={12} color="#fff" />
                   </View>
@@ -282,9 +281,9 @@ export default function ForgotPasswordScreen() {
 
                 <TouchableOpacity
                   style={styles.changeRow}
-                  onPress={() => { setStep('phone'); setOtp(['', '', '', '', '', '']) }}
+                  onPress={() => { setStep('email'); setOtp(['', '', '', '', '', '']) }}
                 >
-                  <Text style={styles.changeText}>Change phone number</Text>
+                  <Text style={styles.changeText}>Change email address</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -310,14 +309,13 @@ const styles = StyleSheet.create({
 
   label: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#111', marginBottom: 10 },
 
-  phoneRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 14, overflow: 'hidden', marginBottom: 12, backgroundColor: '#fafafa' },
-  countryCode: { paddingHorizontal: 14, paddingVertical: 16, backgroundColor: '#f0f0f0', borderRightWidth: 1, borderRightColor: '#e8e8e8' },
-  countryCodeText: { fontSize: 15, color: '#333', fontFamily: 'Poppins_500Medium' },
-  phoneInput: { flex: 1, paddingVertical: 14, paddingHorizontal: 14, fontSize: 16, color: '#333' },
+  emailRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 14, overflow: 'hidden', marginBottom: 12, backgroundColor: '#fafafa', paddingHorizontal: 14 },
+  emailIcon: { marginRight: 10 },
+  emailInput: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#333' },
   hint: { fontSize: 12, color: '#aaa', marginBottom: 22, lineHeight: 18 },
 
-  maskedPhoneBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff5f7', borderWidth: 1.5, borderColor: ACCENT + '40', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 },
-  maskedPhoneText: { flex: 1, fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: '#111', letterSpacing: 1 },
+  maskedEmailBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff5f7', borderWidth: 1.5, borderColor: ACCENT + '40', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 },
+  maskedEmailText: { flex: 1, fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#111', letterSpacing: 0.5 },
   lockedBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: ACCENT, justifyContent: 'center', alignItems: 'center' },
 
 

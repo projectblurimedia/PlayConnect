@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma.js'
 import bcryptjs from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import sgMail from '@sendgrid/mail'
 
 const genderMap = { Male: 'MALE', Female: 'FEMALE', Other: 'OTHER' }
 const skillMap = { Beginner: 'BEGINNER', Intermediate: 'INTERMEDIATE', Advanced: 'ADVANCED', Professional: 'ADVANCED' }
@@ -15,7 +16,7 @@ function signToken(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' })
 }
 
-// ─── In-memory OTP store (phone -> { otp, expiresAt }) ───────────────────────
+// ─── In-memory OTP store (email -> { otp, expiresAt }) ──────────────────────
 // key prefix "reset_" used for forgot-password OTPs
 const otpStore = new Map()
 
@@ -23,47 +24,34 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-function maskPhone(phone) {
-  const d = phone.replace(/\D/g, '')
-  return d.slice(0, -4).replace(/\d/g, '*') + d.slice(-4)
+function maskEmail(email) {
+  const [local, domain] = email.split('@')
+  return local[0] + '*'.repeat(Math.max(1, local.length - 1)) + '@' + domain
 }
 
-// ─── MSG91 SMS sender ─────────────────────────────────────────────────────────
-// Sign up at msg91.com, create an OTP template, then add to .env:
-//   MSG91_API_KEY=<your key>
-//   MSG91_TEMPLATE_ID=<your OTP template ID>
-async function sendSMS(phone, otp) {
-  const apiKey     = process.env.MSG91_API_KEY
-  const templateId = process.env.MSG91_TEMPLATE_ID
+// ─── SendGrid email OTP sender ────────────────────────────────────────────────
+sgMail.setApiKey(process.env.SENDGRID_API_KEY || '')
 
-  if (!apiKey || !templateId || apiKey === 'YOUR_MSG91_API_KEY') {
-    // No SMS credentials — print OTP to backend console for local testing
-    console.log(`\n📱 [DEV] OTP for +91${phone} → ${otp}  (Add MSG91_API_KEY + MSG91_TEMPLATE_ID to .env for real SMS)\n`)
+async function sendEmailOTP(email, otp) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.log(`\n📧 [DEV] OTP for ${email} → ${otp}  (Add SENDGRID_API_KEY to .env for real email)\n`)
     return
   }
-
   try {
-    const res = await fetch('https://control.msg91.com/api/v5/otp', {
-      method: 'POST',
-      headers: {
-        authkey: apiKey,
-        accept: 'application/json',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        template_id: templateId,
-        mobile: `91${phone}`,
-        otp,
-        authkey: apiKey,
-      }),
+    await sgMail.send({
+      to: email,
+      from: process.env.SENDGRID_FROM_EMAIL,
+      subject: 'Your PlayConnect OTP',
+      text: `Your PlayConnect OTP is: ${otp}. It is valid for 5 minutes.`,
+      html: `<div style="font-family:sans-serif;max-width:400px;margin:auto">
+        <h2 style="color:#C8102E">PlayConnect</h2>
+        <p>Your one-time password is:</p>
+        <h1 style="letter-spacing:8px;color:#111">${otp}</h1>
+        <p style="color:#888;font-size:13px">Valid for 5 minutes. Do not share this with anyone.</p>
+      </div>`,
     })
-    const data = await res.json()
-    if (data.type !== 'success') {
-      console.error('MSG91 error:', JSON.stringify(data))
-    }
   } catch (err) {
-    console.error('SMS send failed:', err.message)
-    // OTP still stored in memory — user can retry
+    console.error('SendGrid error:', err.response?.body || err.message)
   }
 }
 
@@ -203,25 +191,24 @@ export const login = async (req, res) => {
 
 export const sendOTP = async (req, res) => {
   try {
-    const { phone } = req.body
-    if (!phone) return res.status(400).json({ error: 'Phone number required' })
-    const digits = phone.replace(/\D/g, '')
-    if (digits.length < 10) return res.status(400).json({ error: 'Enter a valid 10-digit number' })
+    const { email } = req.body
+    if (!email) return res.status(400).json({ error: 'Email required' })
+    const normalEmail = email.trim().toLowerCase()
 
     const user = await prisma.user.findUnique({
-      where: { phone: digits },
-      select: { id: true, phone: true },
+      where: { email: normalEmail },
+      select: { id: true, email: true },
     })
     if (!user) {
-      return res.status(404).json({ error: 'No account found with this phone number. Please register first.' })
+      return res.status(404).json({ error: 'No account found with this email. Please register first.' })
     }
 
     const otp = generateOTP()
-    otpStore.set(digits, { otp, expiresAt: Date.now() + 5 * 60 * 1000 })
+    otpStore.set(normalEmail, { otp, expiresAt: Date.now() + 5 * 60 * 1000 })
 
-    await sendSMS(digits, otp)
+    await sendEmailOTP(normalEmail, otp)
 
-    res.json({ success: true, maskedPhone: maskPhone(digits) })
+    res.json({ success: true, maskedEmail: maskEmail(normalEmail) })
   } catch (err) {
     console.error('sendOTP error:', err)
     res.status(500).json({ error: 'Failed to send OTP' })
@@ -230,23 +217,23 @@ export const sendOTP = async (req, res) => {
 
 export const verifyOTP = async (req, res) => {
   try {
-    const { phone, otp } = req.body
-    if (!phone || !otp) return res.status(400).json({ error: 'Phone and OTP required' })
-    const digits = phone.replace(/\D/g, '')
+    const { email, otp } = req.body
+    if (!email || !otp) return res.status(400).json({ error: 'Email and OTP required' })
+    const normalEmail = email.trim().toLowerCase()
 
-    const stored = otpStore.get(digits)
+    const stored = otpStore.get(normalEmail)
     if (!stored) return res.status(400).json({ error: 'No OTP found. Please request a new one.' })
     if (Date.now() > stored.expiresAt) {
-      otpStore.delete(digits)
+      otpStore.delete(normalEmail)
       return res.status(400).json({ error: 'OTP expired. Please request a new one.' })
     }
     if (stored.otp !== String(otp)) {
       return res.status(400).json({ error: 'Incorrect OTP. Please try again.' })
     }
 
-    otpStore.delete(digits)
+    otpStore.delete(normalEmail)
 
-    const user = await prisma.user.findUnique({ where: { phone: digits } })
+    const user = await prisma.user.findUnique({ where: { email: normalEmail } })
     if (!user) return res.status(404).json({ error: 'User not found' })
 
     const token = signToken(user.id)
@@ -265,19 +252,19 @@ export const verifyOTP = async (req, res) => {
 
 export const forgotPasswordSendOTP = async (req, res) => {
   try {
-    const { phone } = req.body
-    if (!phone) return res.status(400).json({ error: 'Phone number required' })
-    const digits = phone.replace(/\D/g, '')
+    const { email } = req.body
+    if (!email) return res.status(400).json({ error: 'Email required' })
+    const normalEmail = email.trim().toLowerCase()
 
-    const user = await prisma.user.findUnique({ where: { phone: digits }, select: { id: true } })
-    if (!user) return res.status(404).json({ error: 'No account found with this phone number.' })
+    const user = await prisma.user.findUnique({ where: { email: normalEmail }, select: { id: true } })
+    if (!user) return res.status(404).json({ error: 'No account found with this email.' })
 
     const otp = generateOTP()
-    otpStore.set(`reset_${digits}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 })
+    otpStore.set(`reset_${normalEmail}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 })
 
-    await sendSMS(digits, otp)
+    await sendEmailOTP(normalEmail, otp)
 
-    res.json({ success: true, maskedPhone: maskPhone(digits) })
+    res.json({ success: true, maskedEmail: maskEmail(normalEmail) })
   } catch (err) {
     console.error('forgotPasswordSendOTP error:', err)
     res.status(500).json({ error: 'Failed to process request' })
@@ -286,24 +273,24 @@ export const forgotPasswordSendOTP = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   try {
-    const { phone, otp, newPassword } = req.body
-    if (!phone || !otp || !newPassword) return res.status(400).json({ error: 'All fields required' })
+    const { email, otp, newPassword } = req.body
+    if (!email || !otp || !newPassword) return res.status(400).json({ error: 'All fields required' })
     if (newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' })
 
-    const digits = phone.replace(/\D/g, '')
-    const stored = otpStore.get(`reset_${digits}`)
+    const normalEmail = email.trim().toLowerCase()
+    const stored = otpStore.get(`reset_${normalEmail}`)
     if (!stored) return res.status(400).json({ error: 'No OTP found. Please start over.' })
     if (Date.now() > stored.expiresAt) {
-      otpStore.delete(`reset_${digits}`)
+      otpStore.delete(`reset_${normalEmail}`)
       return res.status(400).json({ error: 'OTP expired. Please start over.' })
     }
     if (stored.otp !== String(otp)) {
       return res.status(400).json({ error: 'Incorrect OTP.' })
     }
 
-    otpStore.delete(`reset_${digits}`)
+    otpStore.delete(`reset_${normalEmail}`)
     const passwordHash = await bcryptjs.hash(newPassword, 10)
-    await prisma.user.update({ where: { phone: digits }, data: { passwordHash } })
+    await prisma.user.update({ where: { email: normalEmail }, data: { passwordHash } })
 
     res.json({ success: true, message: 'Password reset successfully. Please login with your new password.' })
   } catch (err) {

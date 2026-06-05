@@ -280,10 +280,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: -85,
     top: -60,
-    width: 160,
+    width: 140,
     height: SCREEN_H + 120,
     backgroundColor: ACCENT,
-    borderRadius: 95,
+    borderRadius: 100,
     zIndex: 1,
     elevation: 1,
     opacity: 0.88,
@@ -291,8 +291,8 @@ const styles = StyleSheet.create({
   blobRight: {
     position: 'absolute',
     right: -85,
-    top: -60,
-    width: 170,
+    bottom: -60,
+    width: 140,
     height: SCREEN_H + 120,
     backgroundColor: ACCENT,
     borderRadius: 95,
@@ -304,12 +304,12 @@ const styles = StyleSheet.create({
   // Sport icons
   iconsRow: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 52 : 36,
+    top: Platform.OS === 'ios' ? 80 : 70,
     left: 0, right: 0,
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 24,
-    opacity: 0.1,
+    justifyContent: 'space-evenly',
+    gap: 70,
+    opacity: 0.5,
     zIndex: 2,
   },
   sportIcon: { fontSize: 22 },
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   // Logo section — compact
   logoSection: {
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingTop: Platform.OS === 'ios' ? 70 : 60,
     paddingBottom: 8,
     zIndex: 10,
     elevation: 10,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.13,
     shadowRadius: 18,
-    elevation: 20,
+    elevation: 2,
     zIndex: 20,
   },
 
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     lineHeight: 16,
-    marginBottom: 12,
+    marginBottom: 28,
   },
 
   // Inputs — tighter
@@ -393,13 +393,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#e8e8e8',
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 12,
     paddingHorizontal: 12,
     backgroundColor: '#fafafa',
     minHeight: 48,
   },
   inputIcon: { marginRight: 8 },
-  inputField: { flex: 1, paddingVertical: 11, fontSize: 14, color: '#333' },
+  inputField: { flex: 1, paddingVertical: 14, fontSize: 14, color: '#333' },
   eyeBtn: { padding: 4 },
 
   forgotRow: { alignItems: 'flex-end', marginBottom: 10 },
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   googleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 11, paddingVertical: 11,
-    backgroundColor: '#fff', marginBottom: 8,
+    backgroundColor: '#fff', marginBottom: 12,
   },
   googleBtnText: { fontSize: 13, color: '#333', fontFamily: 'Poppins_500Medium' },
 

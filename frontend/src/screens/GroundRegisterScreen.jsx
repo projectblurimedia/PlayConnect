@@ -22,13 +22,12 @@ import { useRouter } from 'expo-router'
 import { registerGround as registerGroundAPI } from '../services/api'
 
 const ACCENT = '#C8102E'
-const poppinsTextStyle = { fontFamily: 'Poppins_400Regular' }
 
 function Text({ style, ...props }) {
-  return <RNText {...props} style={[poppinsTextStyle, style]} />
+  return <RNText {...props} style={[{ fontFamily: 'Poppins_400Regular' }, style]} />
 }
 function TextInput({ style, ...props }) {
-  return <RNTextInput {...props} style={[poppinsTextStyle, style]} />
+  return <RNTextInput {...props} style={[{ fontFamily: 'Poppins_400Regular' }, style]} />
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -97,7 +96,7 @@ function SelectModal({ visible, title, options, onSelect, onClose }) {
 
 function FieldLabel({ label, required }) {
   return (
-    <Text style={styles.fieldLabel}>
+    <Text style={styles.label}>
       {label}{required && <Text style={styles.required}> *</Text>}
     </Text>
   )
@@ -107,13 +106,9 @@ function InputField({ label, required, icon, ...props }) {
   return (
     <View style={styles.fieldGroup}>
       <FieldLabel label={label} required={required} />
-      <View style={styles.inputContainer}>
-        {icon && (
-          <View style={styles.inputIconWrap}>
-            <Ionicons name={icon} size={18} color="#888" />
-          </View>
-        )}
-        <TextInput style={[styles.input, icon && styles.inputShifted]} {...props} />
+      <View style={styles.inputRow}>
+        {icon && <Ionicons name={icon} size={18} color={ACCENT} style={styles.inputIcon} />}
+        <TextInput style={styles.inputField} {...props} />
       </View>
     </View>
   )
@@ -123,7 +118,7 @@ function NavRow({ onBack, onNext, nextLabel = 'Next', isSubmit = false, disabled
   return (
     <View style={styles.navRow}>
       <TouchableOpacity style={styles.backBtn} onPress={onBack} disabled={disabled}>
-        <Ionicons name="arrow-back-outline" size={18} color={ACCENT} />
+        <Ionicons name="arrow-back-outline" size={18} color="#555" />
         <Text style={styles.backBtnText}>Back</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.nextBtnSmall, disabled && { opacity: 0.6 }]} onPress={onNext} disabled={disabled}>
@@ -155,7 +150,7 @@ function StepIdentity({ data, onChange, onNext }) {
 
   return (
     <View>
-      <Text style={styles.stepTitle}>Ground Identity</Text>
+      <Text style={styles.stepTitle}>Ground <Text style={styles.stepTitleAccent}>Identity</Text></Text>
       <Text style={styles.stepSub}>Basic information about your ground</Text>
 
       <Text style={styles.sectionLabel}>General Info</Text>
@@ -170,15 +165,17 @@ function StepIdentity({ data, onChange, onNext }) {
 
       <View style={styles.fieldGroup}>
         <FieldLabel label="Description" />
-        <TextInput
-          style={styles.textarea}
-          value={data.description}
-          onChangeText={(v) => onChange('description', v)}
-          placeholder="Describe your ground — facilities, atmosphere, what makes it special..."
-          placeholderTextColor="#bbb"
-          multiline numberOfLines={4}
-          textAlignVertical="top"
-        />
+        <View style={[styles.inputRow, { alignItems: 'flex-start', paddingVertical: 10 }]}>
+          <Ionicons name="create-outline" size={18} color={ACCENT} style={[styles.inputIcon, { marginTop: 2 }]} />
+          <TextInput
+            style={[styles.inputField, { minHeight: 80, textAlignVertical: 'top' }]}
+            value={data.description}
+            onChangeText={(v) => onChange('description', v)}
+            placeholder="Describe your ground — facilities, atmosphere, what makes it special..."
+            placeholderTextColor="#bbb"
+            multiline numberOfLines={4}
+          />
+        </View>
       </View>
 
       <InputField
@@ -247,19 +244,18 @@ function StepLocation({ data, onChange, onNext, onBack }) {
 
   return (
     <View>
-      <Text style={styles.stepTitle}>Location</Text>
+      <Text style={styles.stepTitle}>Ground <Text style={styles.stepTitleAccent}>Location</Text></Text>
       <Text style={styles.stepSub}>Where is your ground located?</Text>
 
-      {/* Auto-fill location button */}
       <TouchableOpacity
-        style={styles.locationBtn}
+        style={[styles.locationBtn, locLoading && { opacity: 0.6 }]}
         onPress={handleUseLocation}
         disabled={locLoading}
         activeOpacity={0.75}
       >
         {locLoading
           ? <ActivityIndicator size="small" color={ACCENT} />
-          : <Ionicons name="location" size={18} color={ACCENT} />
+          : <Ionicons name="locate-outline" size={18} color={ACCENT} />
         }
         <Text style={styles.locationBtnText}>
           {locLoading ? 'Detecting location...' : 'Use my current location'}
@@ -279,16 +275,16 @@ function StepLocation({ data, onChange, onNext, onBack }) {
       <View style={styles.twoCol}>
         <View style={[styles.fieldGroup, styles.colLeft]}>
           <FieldLabel label="City" required />
-          <View style={styles.inputContainer}>
-            <TextInput style={styles.input} value={data.city}
+          <View style={styles.inputRow}>
+            <TextInput style={styles.inputField} value={data.city}
               onChangeText={(v) => onChange('city', v)}
               placeholder="City" placeholderTextColor="#bbb" />
           </View>
         </View>
         <View style={[styles.fieldGroup, styles.colRight]}>
           <FieldLabel label="Pincode" required />
-          <View style={styles.inputContainer}>
-            <TextInput style={styles.input} value={data.pincode}
+          <View style={styles.inputRow}>
+            <TextInput style={styles.inputField} value={data.pincode}
               onChangeText={(v) => onChange('pincode', v)}
               placeholder="6-digit" placeholderTextColor="#bbb"
               keyboardType="numeric" maxLength={6} />
@@ -299,10 +295,11 @@ function StepLocation({ data, onChange, onNext, onBack }) {
       <View style={styles.fieldGroup}>
         <FieldLabel label="State" required />
         <TouchableOpacity style={styles.selectInput} onPress={() => setStateModal(true)}>
+          <Ionicons name="map-outline" size={18} color={ACCENT} style={styles.inputIcon} />
           <Text style={[styles.selectText, !data.state && styles.placeholderText]}>
             {data.state || 'Select State'}
           </Text>
-          <Ionicons name="chevron-down-outline" size={18} color="#888" />
+          <Ionicons name="chevron-down-outline" size={18} color="#aaa" />
         </TouchableOpacity>
       </View>
 
@@ -312,8 +309,8 @@ function StepLocation({ data, onChange, onNext, onBack }) {
       <View style={styles.twoCol}>
         <View style={[styles.fieldGroup, styles.colLeft]}>
           <FieldLabel label="Latitude" />
-          <View style={styles.inputContainer}>
-            <TextInput style={styles.input} value={data.latitude}
+          <View style={styles.inputRow}>
+            <TextInput style={styles.inputField} value={data.latitude}
               onChangeText={(v) => onChange('latitude', v)}
               placeholder="28.6139" placeholderTextColor="#bbb"
               keyboardType="decimal-pad" />
@@ -321,8 +318,8 @@ function StepLocation({ data, onChange, onNext, onBack }) {
         </View>
         <View style={[styles.fieldGroup, styles.colRight]}>
           <FieldLabel label="Longitude" />
-          <View style={styles.inputContainer}>
-            <TextInput style={styles.input} value={data.longitude}
+          <View style={styles.inputRow}>
+            <TextInput style={styles.inputField} value={data.longitude}
               onChangeText={(v) => onChange('longitude', v)}
               placeholder="77.2090" placeholderTextColor="#bbb"
               keyboardType="decimal-pad" />
@@ -377,7 +374,7 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
 
   return (
     <View>
-      <Text style={styles.stepTitle}>Sports & Facilities</Text>
+      <Text style={styles.stepTitle}>Sports & <Text style={styles.stepTitleAccent}>Facilities</Text></Text>
       <Text style={styles.stepSub}>What does your ground offer?</Text>
 
       <Text style={styles.sectionLabel}>Supported Sports *</Text>
@@ -386,7 +383,7 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
           const active = selectedSports.includes(sport.key)
           return (
             <TouchableOpacity key={sport.key}
-              style={[styles.sportChip, active && styles.chipActive]}
+              style={[styles.chip, active && styles.chipActive]}
               onPress={() => toggleSport(sport.key)}>
               <RNText style={styles.chipEmoji}>{sport.emoji}</RNText>
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
@@ -425,10 +422,11 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
       <Text style={styles.sectionLabel}>Surface Type</Text>
       <View style={styles.fieldGroup}>
         <TouchableOpacity style={styles.selectInput} onPress={() => setSurfaceModal(true)}>
+          <Ionicons name="layers-outline" size={18} color={ACCENT} style={styles.inputIcon} />
           <Text style={[styles.selectText, !data.surfaceType && styles.placeholderText]}>
             {SURFACE_TYPES.find((s) => s.key === data.surfaceType)?.label || 'Select Surface Type'}
           </Text>
-          <Ionicons name="chevron-down-outline" size={18} color="#888" />
+          <Ionicons name="chevron-down-outline" size={18} color="#aaa" />
         </TouchableOpacity>
       </View>
 
@@ -456,7 +454,7 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
           const active = selectedAmenities.includes(amenity.key)
           return (
             <TouchableOpacity key={amenity.key}
-              style={[styles.amenityChip, active && styles.chipActive]}
+              style={[styles.chip, active && styles.chipActive]}
               onPress={() => toggleAmenity(amenity.key)}>
               <Ionicons name={amenity.icon} size={15} color={active ? ACCENT : '#888'} />
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
@@ -490,19 +488,17 @@ function StepPricing({ data, onChange, onNext, onBack }) {
 
   return (
     <View>
-      <Text style={styles.stepTitle}>Pricing & Policies</Text>
+      <Text style={styles.stepTitle}>Pricing & <Text style={styles.stepTitleAccent}>Policies</Text></Text>
       <Text style={styles.stepSub}>Set your rates and ground rules</Text>
 
       <Text style={styles.sectionLabel}>Pricing</Text>
 
       <View style={styles.fieldGroup}>
         <FieldLabel label="Price Per Hour (INR)" required />
-        <View style={styles.inputContainer}>
-          <View style={styles.inputIconWrap}>
-            <Text style={styles.currencySign}>₹</Text>
-          </View>
+        <View style={styles.inputRow}>
+          <Text style={styles.currencySign}>₹</Text>
           <TextInput
-            style={[styles.input, styles.inputShifted]}
+            style={styles.inputField}
             value={data.pricePerHour}
             onChangeText={(v) => onChange('pricePerHour', v)}
             placeholder="500"
@@ -517,28 +513,32 @@ function StepPricing({ data, onChange, onNext, onBack }) {
 
       <View style={styles.fieldGroup}>
         <FieldLabel label="Ground Rules" />
-        <TextInput
-          style={styles.textarea}
-          value={data.rules}
-          onChangeText={(v) => onChange('rules', v)}
-          placeholder="e.g. No alcohol, no smoking, proper sports footwear required..."
-          placeholderTextColor="#bbb"
-          multiline numberOfLines={4}
-          textAlignVertical="top"
-        />
+        <View style={[styles.inputRow, { alignItems: 'flex-start', paddingVertical: 10 }]}>
+          <Ionicons name="document-text-outline" size={18} color={ACCENT} style={[styles.inputIcon, { marginTop: 2 }]} />
+          <TextInput
+            style={[styles.inputField, { minHeight: 80, textAlignVertical: 'top' }]}
+            value={data.rules}
+            onChangeText={(v) => onChange('rules', v)}
+            placeholder="e.g. No alcohol, no smoking, proper sports footwear required..."
+            placeholderTextColor="#bbb"
+            multiline numberOfLines={4}
+          />
+        </View>
       </View>
 
       <View style={styles.fieldGroup}>
         <FieldLabel label="Cancellation Policy" />
-        <TextInput
-          style={styles.textarea}
-          value={data.cancellationPolicy}
-          onChangeText={(v) => onChange('cancellationPolicy', v)}
-          placeholder="e.g. Full refund if cancelled 24 hours before booking..."
-          placeholderTextColor="#bbb"
-          multiline numberOfLines={4}
-          textAlignVertical="top"
-        />
+        <View style={[styles.inputRow, { alignItems: 'flex-start', paddingVertical: 10 }]}>
+          <Ionicons name="shield-outline" size={18} color={ACCENT} style={[styles.inputIcon, { marginTop: 2 }]} />
+          <TextInput
+            style={[styles.inputField, { minHeight: 80, textAlignVertical: 'top' }]}
+            value={data.cancellationPolicy}
+            onChangeText={(v) => onChange('cancellationPolicy', v)}
+            placeholder="e.g. Full refund if cancelled 24 hours before booking..."
+            placeholderTextColor="#bbb"
+            multiline numberOfLines={4}
+          />
+        </View>
       </View>
 
       <NavRow onBack={onBack} onNext={validate} />
@@ -574,13 +574,12 @@ function StepPhotos({ data, onChange, onNext, onBack }) {
 
   return (
     <View>
-      <Text style={styles.stepTitle}>Ground Photos</Text>
+      <Text style={styles.stepTitle}>Ground <Text style={styles.stepTitleAccent}>Photos</Text></Text>
       <Text style={styles.stepSub}>Great photos attract 3× more bookings</Text>
 
       <Text style={styles.sectionLabel}>Upload Photos</Text>
       <Text style={styles.sectionHint}>Up to 8 photos — first photo becomes the cover</Text>
 
-      {/* Picker button */}
       <TouchableOpacity
         style={[styles.photoPickerBtn, photos.length >= 8 && styles.photoPickerDisabled]}
         onPress={photos.length < 8 ? pickImages : undefined}
@@ -589,20 +588,19 @@ function StepPhotos({ data, onChange, onNext, onBack }) {
         <View style={styles.photoPickerIconWrap}>
           <Ionicons name="camera-outline" size={26} color={ACCENT} />
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.photoPickerTitle}>
-            {photos.length === 0 ? 'Choose from Gallery' : `Add More Photos`}
+            {photos.length === 0 ? 'Choose from Gallery' : 'Add More Photos'}
           </Text>
           <Text style={styles.photoPickerSub}>
             {photos.length >= 8 ? 'Maximum 8 photos reached' : `${photos.length}/8 photos added`}
           </Text>
         </View>
         {photos.length < 8 && (
-          <Ionicons name="chevron-forward-outline" size={18} color="#bbb" style={{ marginLeft: 'auto' }} />
+          <Ionicons name="chevron-forward-outline" size={18} color="#bbb" />
         )}
       </TouchableOpacity>
 
-      {/* Photo grid */}
       {photos.length > 0 ? (
         <View style={styles.photosGrid}>
           {photos.map((uri, idx) => (
@@ -640,16 +638,18 @@ function StepReview({ identity, location, facilities, pricing, media, onBack, on
   if (submitted) {
     return (
       <View style={styles.successWrap}>
-        <Ionicons name="checkmark-circle" size={72} color={ACCENT} />
+        <View style={styles.successIconBg}>
+          <Ionicons name="checkmark-circle" size={60} color={ACCENT} />
+        </View>
         <Text style={styles.successTitle}>Ground Registered!</Text>
         <Text style={styles.successSub}>
           Submitted for admin verification. You'll be notified once it goes live.
         </Text>
         <View style={styles.successFeatures}>
           {[
-            { icon: 'shield-checkmark-outline', text: 'Under Admin Review'            },
-            { icon: 'notifications-outline',    text: 'Notification on Approval'      },
-            { icon: 'calendar-outline',         text: 'Slots Enabled After Approval'  },
+            { icon: 'shield-checkmark-outline', text: 'Under Admin Review'           },
+            { icon: 'notifications-outline',    text: 'Notification on Approval'     },
+            { icon: 'calendar-outline',         text: 'Slots Enabled After Approval' },
           ].map((f) => (
             <View key={f.text} style={styles.successFeatureRow}>
               <View style={styles.featureIconBg}>
@@ -679,7 +679,7 @@ function StepReview({ identity, location, facilities, pricing, media, onBack, on
 
   return (
     <View>
-      <Text style={styles.stepTitle}>Review & Submit</Text>
+      <Text style={styles.stepTitle}>Review & <Text style={styles.stepTitleAccent}>Submit</Text></Text>
       <Text style={styles.stepSub}>Confirm your ground details before submitting</Text>
 
       <View style={styles.reviewCard}>
@@ -806,25 +806,27 @@ const GroundRegisterScreen = () => {
     <View style={styles.container}>
       <StatusBar backgroundColor={ACCENT} barStyle="light-content" />
 
-      {/* Sticky header — outside ScrollView so it never scrolls */}
+      {/* ── Sticky header ── */}
       <View style={styles.stickyHeader}>
-        <View style={styles.header}>
-          {/* Back button */}
+        <LinearGradient colors={[ACCENT, '#a00d24']} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <TouchableOpacity style={styles.headerBackBtn} onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.logoText}>
-              PLAY<Text style={styles.logoAccent}>CONNECT</Text>
-            </Text>
-            <Text style={styles.tagline}>Stop Virtual Games. Start Real Battles.</Text>
-            <View style={styles.headerIconsRow}>
-              {['🏏','⚽','🏀','🏸','🏐','🎾','🏊','🚴','🏃','🏑','🏓','🤼'].map((icon, i) => (
-                <RNText key={i} style={styles.headerIcon}>{icon}</RNText>
-              ))}
+            <View style={styles.pBadge}>
+              <Text style={styles.pLetter}>P</Text>
+              <Ionicons name="walk" size={11} color="#fff" style={styles.pRunner} />
             </View>
+            <Text style={styles.brandRow}>
+              <Text style={styles.brandPlay}>PLAY</Text>
+              <Text style={styles.brandConnect}>CONNECT</Text>
+            </Text>
+            <Text style={styles.tagline}>
+              {'STOP VIRTUAL GAMES. START '}
+              <Text style={styles.taglineAccent}>REAL BATTLES.</Text>
+            </Text>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Step indicator */}
         <View style={styles.stepBar}>
@@ -832,16 +834,10 @@ const GroundRegisterScreen = () => {
             {STEPS.map((label, i) => (
               <React.Fragment key={label}>
                 <View style={styles.stepItem}>
-                  <View style={[
-                    styles.stepCircle,
-                    step > i  && styles.stepDone,
-                    step === i && styles.stepActive,
-                  ]}>
+                  <View style={[styles.stepCircle, step > i && styles.stepDone, step === i && styles.stepActive]}>
                     <Text style={styles.stepCircleText}>{step > i ? '✓' : i + 1}</Text>
                   </View>
-                  <Text style={[styles.stepLabel, step >= i && styles.stepLabelActive]}>
-                    {label}
-                  </Text>
+                  <Text style={[styles.stepLabel, step >= i && styles.stepLabelActive]}>{label}</Text>
                 </View>
                 {i < STEPS.length - 1 && (
                   <View style={[styles.stepLine, step > i && styles.stepLineDone]} />
@@ -853,17 +849,14 @@ const GroundRegisterScreen = () => {
       </View>
 
       {/* Scrollable form */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
           ref={scrollRef}
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.body}>
+          <View style={styles.card}>
             {step === 0 && <StepIdentity   data={identity}   onChange={patch(setIdentity)}   onNext={goNext} />}
             {step === 1 && <StepLocation   data={location}   onChange={patch(setLocation)}   onNext={goNext} onBack={goBack} />}
             {step === 2 && <StepFacilities data={facilities} onChange={patch(setFacilities)} onNext={goNext} onBack={goBack} />}
@@ -873,10 +866,8 @@ const GroundRegisterScreen = () => {
               <StepReview
                 identity={identity} location={location}
                 facilities={facilities} pricing={pricing} media={media}
-                onBack={goBack}
-                onSubmit={handleSubmit}
-                submitted={submitted}
-                submitting={submitting}
+                onBack={goBack} onSubmit={handleSubmit}
+                submitted={submitted} submitting={submitting}
               />
             )}
           </View>
@@ -889,51 +880,50 @@ const GroundRegisterScreen = () => {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: { flex: 1, backgroundColor: '#efefef' },
 
   // ── Header ──
-  stickyHeader: { zIndex: 100, backgroundColor: '#fff' },
+  stickyHeader: { zIndex: 100, backgroundColor: '#efefef' },
   header: {
-    backgroundColor: ACCENT,
-    padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 50 : 45,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 16,
+    paddingHorizontal: 20,
   },
   headerBackBtn: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 45,
+    top: Platform.OS === 'ios' ? 60 : 50,
     left: 16,
     zIndex: 10,
     padding: 4,
   },
   headerContent: { alignItems: 'center' },
-  logoText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    textAlign: 'center',
-  },
-  logoAccent: { opacity: 0.85 },
-  tagline: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  headerIconsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  pBadge: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 12,
     justifyContent: 'center',
-    gap: 10,
-    marginTop: 10,
-    opacity: 0.5,
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
-  headerIcon: { fontSize: 16 },
+  pLetter: { fontSize: 28, fontFamily: 'Poppins_800ExtraBold', color: '#fff', lineHeight: 34 },
+  pRunner: { position: 'absolute', bottom: 5, right: 5 },
+  brandRow: { fontSize: 22, marginBottom: 3 },
+  brandPlay:    { fontFamily: 'Poppins_800ExtraBold', color: '#fff' },
+  brandConnect: { fontFamily: 'Poppins_800ExtraBold', color: 'rgba(255,255,255,0.75)' },
+  tagline: {
+    fontSize: 9.5,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  taglineAccent: { color: '#fff', fontFamily: 'Poppins_700Bold' },
 
-  // ── Step indicator ──
+  // ── Step bar ──
   stepBar: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -943,264 +933,339 @@ const styles = StyleSheet.create({
   },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' },
   stepItem: { alignItems: 'center', width: 50 },
-  stepCircle: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: '#ebebeb',
-    justifyContent: 'center', alignItems: 'center',
-  },
+  stepCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
   stepActive: { backgroundColor: ACCENT },
   stepDone:   { backgroundColor: ACCENT },
-  stepCircleText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  stepLabel:      { fontSize: 9, color: '#bbb', textAlign: 'center', marginTop: 4 },
-  stepLabelActive: { color: ACCENT, fontWeight: '600' },
-  stepLine:     { flex: 1, height: 2, backgroundColor: '#ebebeb', marginHorizontal: 2, marginTop: 12 },
+  stepCircleText: { fontSize: 11, fontFamily: 'Poppins_700Bold', color: '#fff' },
+  stepLabel:       { fontSize: 9, color: '#bbb', textAlign: 'center', marginTop: 4, fontFamily: 'Poppins_400Regular' },
+  stepLabelActive: { color: ACCENT, fontFamily: 'Poppins_600SemiBold' },
+  stepLine:     { flex: 1, height: 2, backgroundColor: '#f0f0f0', marginHorizontal: 2, marginTop: 12 },
   stepLineDone: { backgroundColor: ACCENT },
 
-  // ── Scroll body ──
-  scrollView:    { flex: 1 },
-  scrollContent: { flexGrow: 1 },
-  body:          { padding: 20, paddingBottom: 48 },
-
-  // ── Step header text ──
-  stepTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 4 },
-  stepSub:   { fontSize: 14, color: '#666', marginBottom: 24 },
-  sectionLabel: {
-    fontSize: 12, fontWeight: '700', color: ACCENT,
-    textTransform: 'uppercase', letterSpacing: 1,
-    marginBottom: 12, marginTop: 8,
+  // ── Card / Body ──
+  scrollView: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingBottom: 32 },
+  card: {
+    backgroundColor: '#fff',
+    marginHorizontal: 14,
+    marginTop: 14,
+    borderRadius: 22,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 3,
+    marginBottom: 14,
   },
-  sectionHint: { fontSize: 12, color: '#999', marginTop: -8, marginBottom: 14 },
+
+  // ── Step title / sub ──
+  stepTitle: {
+    fontSize: 22,
+    fontFamily: 'Poppins_700Bold',
+    color: '#111',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 2,
+  },
+  stepTitleAccent: { color: ACCENT },
+  stepSub: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: 'Poppins_700Bold',
+    color: ACCENT,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  sectionHint: { fontSize: 12, color: '#bbb', marginTop: -8, marginBottom: 14, fontFamily: 'Poppins_400Regular' },
+
+  // ── Field / label ──
+  fieldGroup: { marginBottom: 14 },
+  label: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#111', marginBottom: 7 },
+  required: { color: ACCENT },
+
+  // ── Input row (matches RegisterScreen) ──
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: '#fafafa',
+    minHeight: 48,
+  },
+  inputIcon: { marginRight: 8 },
+  inputField: {
+    flex: 1,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: '#333',
+    fontFamily: 'Poppins_400Regular',
+  },
+
+  // ── Select ──
+  selectInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 13,
+    backgroundColor: '#fafafa',
+    minHeight: 48,
+  },
+  selectText:      { flex: 1, fontSize: 14, color: '#333', fontFamily: 'Poppins_400Regular' },
+  placeholderText: { color: '#bbb' },
+
+  // ── Two-col layout ──
+  twoCol:   { flexDirection: 'row' },
+  colLeft:  { flex: 1, marginRight: 6 },
+  colRight: { flex: 1, marginLeft: 6 },
+
+  // ── Pricing ──
+  currencySign: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: ACCENT, marginRight: 4 },
+  perHourTag:   { fontSize: 13, color: '#aaa', fontFamily: 'Poppins_400Regular', marginLeft: 4 },
 
   // ── Location button ──
   locationBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: ACCENT + '12',
-    borderWidth: 1.5, borderColor: ACCENT + '40',
-    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16,
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff5f7',
+    borderWidth: 1.5,
+    borderColor: ACCENT + '30',
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    marginBottom: 18,
   },
-  locationBtnText: { fontSize: 14, color: ACCENT, fontFamily: 'Poppins_600SemiBold' },
-
-  // ── Form fields ──
-  fieldGroup:    { marginBottom: 16 },
-  fieldLabel:    { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 6 },
-  required:      { color: ACCENT },
-  inputContainer: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12, borderWidth: 1.5, borderColor: '#e5e7eb',
-    overflow: 'hidden',
-  },
-  inputIconWrap: { paddingLeft: 14, paddingRight: 4 },
-  input: {
-    flex: 1, paddingVertical: 14, paddingHorizontal: 14,
-    fontSize: 15, color: '#333',
-  },
-  inputShifted: { paddingLeft: 6 },
-  textarea: {
-    borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 12,
-    paddingVertical: 12, paddingHorizontal: 14,
-    fontSize: 14, color: '#333', backgroundColor: '#f8f9fa',
-    minHeight: 92, textAlignVertical: 'top',
-  },
-  selectInput: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12, borderWidth: 1.5, borderColor: '#e5e7eb',
-    paddingVertical: 14, paddingHorizontal: 14,
-  },
-  selectText:      { fontSize: 15, color: '#333' },
-  placeholderText: { color: '#bbb' },
-  twoCol:   { flexDirection: 'row' },
-  colLeft:  { flex: 1, marginRight: 8 },
-  colRight: { flex: 1, marginLeft: 8 },
-  currencySign: { fontSize: 17, fontWeight: '700', color: '#555', paddingLeft: 14 },
-  perHourTag:   { fontSize: 13, color: '#999', paddingRight: 14 },
+  locationBtnText: { fontSize: 13, color: ACCENT, fontFamily: 'Poppins_600SemiBold' },
 
   // ── Chips ──
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  sportChip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 24,
-    borderWidth: 1.5, borderColor: '#e5e7eb', backgroundColor: '#f8f9fa', gap: 6,
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    backgroundColor: '#fafafa',
+    gap: 6,
   },
-  amenityChip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 24,
-    borderWidth: 1.5, borderColor: '#e5e7eb', backgroundColor: '#f8f9fa', gap: 6,
-  },
-  chipActive:      { borderColor: ACCENT, backgroundColor: '#FFF0F2' },
+  chipActive:      { borderColor: ACCENT, backgroundColor: '#fff0f2' },
   chipEmoji:       { fontSize: 15 },
-  chipLabel:       { fontSize: 13, color: '#555' },
-  chipLabelActive: { color: ACCENT, fontWeight: '600' },
+  chipLabel:       { fontSize: 13, color: '#555', fontFamily: 'Poppins_400Regular' },
+  chipLabelActive: { color: ACCENT, fontFamily: 'Poppins_600SemiBold' },
 
   // ── Capacity ──
   capacityRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12, borderWidth: 1.5, borderColor: '#e5e7eb',
-    paddingVertical: 10, paddingHorizontal: 14, marginBottom: 10, gap: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    gap: 10,
   },
   capacityEmoji: { fontSize: 20 },
-  capacityLabel: { flex: 1, fontSize: 14, color: '#333' },
+  capacityLabel: { flex: 1, fontSize: 14, color: '#333', fontFamily: 'Poppins_400Regular' },
   capacityInput: {
-    width: 68, fontSize: 14, color: '#333', textAlign: 'right',
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#fff',
+    width: 68,
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'right',
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    fontFamily: 'Poppins_400Regular',
   },
 
-  // ── Radio ──
-  radioRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  // ── Radio chips ──
+  radioRow:  { flexDirection: 'row', gap: 12, marginBottom: 18 },
   radioChip: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, paddingHorizontal: 22, borderRadius: 24,
-    borderWidth: 1.5, borderColor: '#e5e7eb', backgroundColor: '#f8f9fa', gap: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    backgroundColor: '#fafafa',
+    gap: 6,
   },
 
-  // ── Navigation — both buttons forced to the same height ──
+  // ── Nav row ──
   navRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'stretch', marginTop: 24, gap: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'stretch',
+    marginTop: 22,
+    gap: 12,
   },
   backBtn: {
     height: 48,
     flex: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, borderRadius: 12,
-    borderWidth: 1.5, borderColor: ACCENT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
   },
-  backBtnText: { fontSize: 15, fontWeight: '600', color: ACCENT },
-  nextBtnSmall: {
-    height: 48,
-    flex: 1,
-    borderRadius: 12, overflow: 'hidden',
-  },
-  gradientSmall: {
-    flex: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-  },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: '700', lineHeight: 20 },
+  backBtnText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#555' },
+  nextBtnSmall: { height: 48, flex: 1, borderRadius: 12, overflow: 'hidden' },
+  gradientSmall: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  btnText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins_700Bold', lineHeight: 20 },
 
-  // ── First-step full-width next button ──
-  nextButton: { borderRadius: 14, overflow: 'hidden', marginTop: 8 },
-  gradient: {
-    paddingVertical: 16, flexDirection: 'row',
-    justifyContent: 'center', alignItems: 'center', gap: 8,
-  },
+  // ── First-step full-width next ──
+  nextButton: { borderRadius: 12, overflow: 'hidden', marginTop: 8 },
+  gradient: { paddingVertical: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
 
   // ── Modal ──
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center', alignItems: 'center',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
   modalCard: {
-    width: '82%', maxHeight: '62%',
-    backgroundColor: '#fff', borderRadius: 20, padding: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14, shadowRadius: 20, elevation: 12,
+    width: '82%',
+    maxHeight: '62%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 12,
   },
-  modalTitle: {
-    fontSize: 16, fontWeight: '700', color: '#111',
-    marginBottom: 14, textAlign: 'center',
-  },
-  modalOption: {
-    paddingVertical: 13, paddingHorizontal: 6,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
-  },
-  modalOptionText: { fontSize: 15, color: '#333' },
+  modalTitle: { fontSize: 15, fontFamily: 'Poppins_700Bold', color: '#111', marginBottom: 14, textAlign: 'center' },
+  modalOption: { paddingVertical: 13, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  modalOptionText: { fontSize: 14, color: '#333', fontFamily: 'Poppins_400Regular', textAlign: 'center' },
 
   // ── Photos ──
   photoPickerBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#fff', borderRadius: 14,
-    borderWidth: 1.5, borderColor: '#e5e7eb',
-    padding: 16, marginBottom: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    padding: 16,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   photoPickerDisabled: { opacity: 0.5 },
-  photoPickerIconWrap: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: '#FFF0F2',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  photoPickerTitle: { fontSize: 15, fontWeight: '600', color: '#222' },
-  photoPickerSub:   { fontSize: 12, color: '#999', marginTop: 2 },
+  photoPickerIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#fff0f2', justifyContent: 'center', alignItems: 'center' },
+  photoPickerTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#222' },
+  photoPickerSub:   { fontSize: 11.5, color: '#aaa', marginTop: 2, fontFamily: 'Poppins_400Regular' },
 
-  photosGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20,
-  },
-  photoThumb: {
-    width: '30%', aspectRatio: 1,
-    borderRadius: 12, overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
-  },
-  photoImg:  { width: '100%', height: '100%' },
-  coverBadge: {
-    position: 'absolute', bottom: 6, left: 6,
-    backgroundColor: ACCENT,
-    borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
-  },
-  coverBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  photoRemoveBtn: {
-    position: 'absolute', top: 4, right: 4,
-  },
+  photosGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18 },
+  photoThumb: { width: '30%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f0f0f0' },
+  photoImg:   { width: '100%', height: '100%' },
+  coverBadge: { position: 'absolute', bottom: 6, left: 6, backgroundColor: ACCENT, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  coverBadgeText: { color: '#fff', fontSize: 10, fontFamily: 'Poppins_700Bold' },
+  photoRemoveBtn: { position: 'absolute', top: 4, right: 4 },
 
   photoEmptyState: {
-    alignItems: 'center', paddingVertical: 36,
-    backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 1.5, borderColor: '#f0f0f0',
-    borderStyle: 'dashed', marginBottom: 20,
+    alignItems: 'center',
+    paddingVertical: 36,
+    backgroundColor: '#fafafa',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#f0f0f0',
+    borderStyle: 'dashed',
+    marginBottom: 18,
   },
-  photoEmptyTitle: { fontSize: 15, fontWeight: '600', color: '#bbb', marginTop: 12 },
-  photoEmptyHint:  { fontSize: 12, color: '#ccc', marginTop: 4, textAlign: 'center', paddingHorizontal: 24 },
+  photoEmptyTitle: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#ccc', marginTop: 12 },
+  photoEmptyHint:  { fontSize: 12, color: '#ccc', marginTop: 4, textAlign: 'center', paddingHorizontal: 24, fontFamily: 'Poppins_400Regular' },
 
   // ── Review ──
   reviewCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    backgroundColor: '#fafafa',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#f0f0f0',
   },
   reviewCardTitle: {
-    fontSize: 12, fontWeight: '700', color: ACCENT,
-    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12,
+    fontSize: 11,
+    fontFamily: 'Poppins_700Bold',
+    color: ACCENT,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
   },
   reviewRow:       { flexDirection: 'row', marginBottom: 8, gap: 8 },
-  reviewLabel:     { fontSize: 13, color: '#999', width: 88 },
-  reviewValue:     { flex: 1, fontSize: 13, color: '#222' },
+  reviewLabel:     { fontSize: 12, color: '#888', width: 88, fontFamily: 'Poppins_400Regular' },
+  reviewValue:     { flex: 1, fontSize: 13, color: '#222', fontFamily: 'Poppins_500Medium' },
   reviewChipsWrap: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   reviewChip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFF0F2', borderRadius: 20,
-    paddingVertical: 3, paddingHorizontal: 10, gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff0f2',
+    borderRadius: 20,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    gap: 4,
   },
-  reviewChipText: { fontSize: 12, color: ACCENT },
-  reviewPhoto: {
-    width: 90, height: 90, borderRadius: 10,
-    overflow: 'hidden', marginRight: 10,
-  },
+  reviewChipText: { fontSize: 12, color: ACCENT, fontFamily: 'Poppins_500Medium' },
+  reviewPhoto:    { width: 90, height: 90, borderRadius: 10, overflow: 'hidden', marginRight: 10 },
   reviewPhotoImg: { width: '100%', height: '100%' },
 
   // ── Success ──
-  successWrap:  { alignItems: 'center', paddingVertical: 48 },
-  successTitle: { fontSize: 26, fontWeight: '800', color: '#111', marginTop: 16, marginBottom: 10 },
-  successSub: {
-    fontSize: 14, color: '#666', textAlign: 'center',
-    lineHeight: 22, marginBottom: 36, paddingHorizontal: 16,
+  successWrap: { alignItems: 'center', paddingVertical: 40 },
+  successIconBg: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#fff0f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  successFeatures:    { width: '100%', gap: 12 },
+  successTitle: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: '#111', marginTop: 14, marginBottom: 10, textAlign: 'center' },
+  successSub: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 32, paddingHorizontal: 16, fontFamily: 'Poppins_400Regular' },
+  successFeatures:    { width: '100%', gap: 10 },
   successFeatureRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, gap: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: '#f0f0f0',
   },
   featureIconBg: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: '#C8102E15',
-    justifyContent: 'center', alignItems: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#fff0f2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  featureText: { fontSize: 14, color: '#444' },
+  featureText: { fontSize: 13, color: '#444', fontFamily: 'Poppins_500Medium' },
 })
 
 export default GroundRegisterScreen

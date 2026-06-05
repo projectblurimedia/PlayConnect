@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Dimensions,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { MaterialIcons, Ionicons } from '@expo/vector-icons'
@@ -22,14 +23,14 @@ import { useDispatch } from 'react-redux'
 import { setUser } from '../store/userSlice'
 import { checkUsername as checkUsernameAPI, registerUser, uploadProfilePhoto } from '../services/api'
 
-const poppinsTextStyle = { fontFamily: 'Poppins_400Regular' }
+const ACCENT    = '#C8102E'
+const SCREEN_H  = Dimensions.get('window').height
 
 function Text({ style, ...props }) {
-  return <RNText {...props} style={[poppinsTextStyle, style]} />
+  return <RNText {...props} style={[{ fontFamily: 'Poppins_400Regular' }, style]} />
 }
-
 function TextInput({ style, ...props }) {
-  return <RNTextInput {...props} style={[poppinsTextStyle, style]} />
+  return <RNTextInput {...props} style={[{ fontFamily: 'Poppins_400Regular' }, style]} />
 }
 
 const SPORTS = [
@@ -207,10 +208,11 @@ function SportField({ field, value, onChange }) {
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>{field.label}{field.required && <Text style={styles.required}> *</Text>}</Text>
         <TouchableOpacity style={styles.select} onPress={() => setShowPicker(true)}>
+          <Ionicons name="list-outline" size={18} color={ACCENT} style={styles.inputIcon} />
           <Text style={[styles.selectText, !value && styles.placeholderText]}>
             {value || `Select ${field.label.toLowerCase()}`}
           </Text>
-          <MaterialIcons name="arrow-drop-down" size={24} color="#666" />
+          <MaterialIcons name="arrow-drop-down" size={24} color="#aaa" />
         </TouchableOpacity>
         <Modal visible={showPicker} transparent animationType="slide" onRequestClose={() => setShowPicker(false)}>
           <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPicker(false)}>
@@ -237,16 +239,18 @@ function SportField({ field, value, onChange }) {
     return (
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>{field.label}{field.required && <Text style={styles.required}> *</Text>}</Text>
-        <TextInput
-          style={styles.textarea}
-          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-          placeholderTextColor="#999"
-          value={value || ""}
-          onChangeText={onChange}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-        />
+        <View style={[styles.inputRow, { alignItems: 'flex-start', paddingVertical: 10 }]}>
+          <Ionicons name="create-outline" size={18} color={ACCENT} style={[styles.inputIcon, { marginTop: 2 }]} />
+          <TextInput
+            style={[styles.inputField, { minHeight: 72, textAlignVertical: 'top' }]}
+            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+            placeholderTextColor="#bbb"
+            value={value || ""}
+            onChangeText={onChange}
+            multiline
+            numberOfLines={4}
+          />
+        </View>
       </View>
     )
   }
@@ -254,14 +258,22 @@ function SportField({ field, value, onChange }) {
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{field.label}{field.required && <Text style={styles.required}> *</Text>}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-        placeholderTextColor="#999"
-        value={value || ""}
-        onChangeText={onChange}
-        keyboardType={field.type === "number" ? "numeric" : "default"}
-      />
+      <View style={styles.inputRow}>
+        <Ionicons
+          name={field.type === 'number' ? 'timer-outline' : 'create-outline'}
+          size={18}
+          color={ACCENT}
+          style={styles.inputIcon}
+        />
+        <TextInput
+          style={styles.inputField}
+          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+          placeholderTextColor="#bbb"
+          value={value || ""}
+          onChangeText={onChange}
+          keyboardType={field.type === "number" ? "numeric" : "default"}
+        />
+      </View>
     </View>
   )
 }
@@ -362,10 +374,10 @@ function StepProfile({ data, onChange, onNext }) {
     }
   }
 
-  const renderUsernameIcon = () => {
-    if (usernameStatus === 'checking') return <ActivityIndicator size="small" color="#888" style={styles.usernameIcon} />
-    if (usernameStatus === 'available') return <Ionicons name="checkmark-circle" size={22} color="#22c55e" style={styles.usernameIcon} />
-    if (usernameStatus === 'taken') return <Ionicons name="close-circle" size={22} color="#C8102E" style={styles.usernameIcon} />
+  const renderUsernameStatus = () => {
+    if (usernameStatus === 'checking') return <ActivityIndicator size="small" color="#888" style={styles.inputTrailingIcon} />
+    if (usernameStatus === 'available') return <Ionicons name="checkmark-circle" size={20} color="#22c55e" style={styles.inputTrailingIcon} />
+    if (usernameStatus === 'taken') return <Ionicons name="close-circle" size={20} color={ACCENT} style={styles.inputTrailingIcon} />
     return null
   }
 
@@ -389,29 +401,33 @@ function StepProfile({ data, onChange, onNext }) {
   }
 
   const locationFields = [
-    { id: "country", label: "Country", placeholder: "Enter your country", required: true },
-    { id: "state", label: "State", placeholder: "Enter your state", required: true },
-    { id: "city", label: "City", placeholder: "Enter your city", required: true },
-    { id: "area", label: "Area / Locality", placeholder: "Enter your area or locality" },
-    { id: "pincode", label: "Pin Code", placeholder: "Enter pin code", required: true },
+    { id: "country",  label: "Country",        placeholder: "Enter your country",        icon: "earth-outline",    required: true  },
+    { id: "state",    label: "State",           placeholder: "Enter your state",          icon: "map-outline",      required: true  },
+    { id: "city",     label: "City",            placeholder: "Enter your city",           icon: "business-outline", required: true  },
+    { id: "area",     label: "Area / Locality", placeholder: "Enter your area",           icon: "location-outline", required: false },
+    { id: "pincode",  label: "Pin Code",        placeholder: "Enter pin code",            icon: "navigate-outline", required: true  },
   ]
 
   return (
     <View>
-      <Text style={styles.pageTitle}>Create Your Account</Text>
+      <Text style={styles.pageTitle}>Create Your <Text style={styles.pageTitleAccent}>Account</Text></Text>
       <Text style={styles.pageSub}>Join the sports community and start your journey</Text>
+
       <Text style={styles.sectionLabel}>Basic Information</Text>
 
       {/* Profile Photo */}
       <TouchableOpacity style={styles.photoUpload} onPress={handlePickPhoto} disabled={photoUploading}>
         {photoUploading ? (
-          <ActivityIndicator size="small" color="#C8102E" />
+          <ActivityIndicator size="small" color={ACCENT} />
         ) : photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.photoPreview} />
         ) : (
           <>
-            <Text style={styles.photoIcon}>📷</Text>
-            <Text style={styles.photoText}>Upload your profile picture</Text>
+            <View style={styles.photoIconBg}>
+              <Ionicons name="camera-outline" size={26} color={ACCENT} />
+            </View>
+            <Text style={styles.photoText}>Upload profile picture</Text>
+            <Text style={styles.photoHint}>Optional — tap to choose</Text>
           </>
         )}
         {photoUri && !photoUploading && (
@@ -422,65 +438,76 @@ function StepProfile({ data, onChange, onNext }) {
       {/* Full Name */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Full Name<Text style={styles.required}> *</Text></Text>
-        <TextInput
-          style={[styles.input, errors.fullName && styles.inputError]}
-          placeholder="Enter your full name"
-          placeholderTextColor="#999"
-          value={data.fullName || ''}
-          onChangeText={(text) => { onChange('fullName', text); if (errors.fullName) setErrors(p => ({ ...p, fullName: '' })) }}
-        />
+        <View style={[styles.inputRow, errors.fullName && styles.inputRowError]}>
+          <Ionicons name="person-outline" size={18} color={ACCENT} style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputField}
+            placeholder="Enter your full name"
+            placeholderTextColor="#bbb"
+            value={data.fullName || ''}
+            onChangeText={(text) => { onChange('fullName', text); if (errors.fullName) setErrors(p => ({ ...p, fullName: '' })) }}
+          />
+        </View>
         {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
       </View>
 
       {/* Username */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Username<Text style={styles.required}> *</Text></Text>
-        <View style={styles.inputWithIcon}>
+        <View style={[styles.inputRow, errors.username && styles.inputRowError]}>
+          <Ionicons name="at-outline" size={18} color={ACCENT} style={styles.inputIcon} />
           <TextInput
-            style={[styles.input, styles.inputFlex, errors.username && styles.inputError]}
+            style={styles.inputField}
             placeholder="Choose a unique username"
-            placeholderTextColor="#999"
+            placeholderTextColor="#bbb"
             value={data.username || ''}
             onChangeText={handleUsernameChange}
             autoCapitalize="none"
             autoCorrect={false}
           />
-          {renderUsernameIcon()}
+          {renderUsernameStatus()}
         </View>
-        {errors.username ? <Text style={styles.errorText}>{errors.username}</Text>
-          : usernameStatus === 'available' ? <Text style={styles.successText}>Username is available</Text>
-          : usernameStatus === 'taken' ? <Text style={styles.errorText}>Username already taken</Text>
-          : null}
+        {errors.username
+          ? <Text style={styles.errorText}>{errors.username}</Text>
+          : usernameStatus === 'available'
+            ? <Text style={styles.successText}>Username is available</Text>
+            : usernameStatus === 'taken'
+              ? <Text style={styles.errorText}>Username already taken</Text>
+              : null}
       </View>
 
       {/* Phone */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Phone Number<Text style={styles.required}> *</Text></Text>
-        <TextInput
-          style={[styles.input, errors.phone && styles.inputError]}
-          placeholder="+91 Enter your phone number"
-          placeholderTextColor="#999"
-          value={data.phone || ''}
-          onChangeText={(text) => { onChange('phone', text); if (errors.phone) setErrors(p => ({ ...p, phone: '' })) }}
-          keyboardType="phone-pad"
-        />
+        <View style={[styles.inputRow, errors.phone && styles.inputRowError]}>
+          <Ionicons name="call-outline" size={18} color={ACCENT} style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputField}
+            placeholder="+91 Enter your phone number"
+            placeholderTextColor="#bbb"
+            value={data.phone || ''}
+            onChangeText={(text) => { onChange('phone', text); if (errors.phone) setErrors(p => ({ ...p, phone: '' })) }}
+            keyboardType="phone-pad"
+          />
+        </View>
         {errors.phone ? <Text style={styles.errorText}>{errors.phone}</Text> : null}
       </View>
 
       {/* Password */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Password<Text style={styles.required}> *</Text></Text>
-        <View style={styles.inputWithIcon}>
+        <View style={[styles.inputRow, errors.password && styles.inputRowError]}>
+          <Ionicons name="lock-closed-outline" size={18} color={ACCENT} style={styles.inputIcon} />
           <TextInput
-            style={[styles.input, styles.inputFlex, errors.password && styles.inputError]}
+            style={styles.inputField}
             placeholder="Create a password (min 6 chars)"
-            placeholderTextColor="#999"
+            placeholderTextColor="#bbb"
             value={data.password || ''}
             onChangeText={(text) => { onChange('password', text); if (errors.password) setErrors(p => ({ ...p, password: '' })) }}
             secureTextEntry={!showPassword}
           />
-          <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.usernameIcon}>
-            <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color="#888" />
+          <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn}>
+            <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#bbb" />
           </TouchableOpacity>
         </View>
         {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
@@ -489,27 +516,33 @@ function StepProfile({ data, onChange, onNext }) {
       {/* Email */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Email Address</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your email"
-          placeholderTextColor="#999"
-          value={data.email || ''}
-          onChangeText={(text) => onChange('email', text)}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
+        <View style={styles.inputRow}>
+          <Ionicons name="mail-outline" size={18} color={ACCENT} style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputField}
+            placeholder="Enter your email"
+            placeholderTextColor="#bbb"
+            value={data.email || ''}
+            onChangeText={(text) => onChange('email', text)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
       </View>
 
       {/* DOB */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Date of Birth<Text style={styles.required}> *</Text></Text>
-        <TextInput
-          style={[styles.input, errors.dob && styles.inputError]}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#999"
-          value={data.dob || ''}
-          onChangeText={(text) => { onChange('dob', text); if (errors.dob) setErrors(p => ({ ...p, dob: '' })) }}
-        />
+        <View style={[styles.inputRow, errors.dob && styles.inputRowError]}>
+          <Ionicons name="calendar-outline" size={18} color={ACCENT} style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputField}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#bbb"
+            value={data.dob || ''}
+            onChangeText={(text) => { onChange('dob', text); if (errors.dob) setErrors(p => ({ ...p, dob: '' })) }}
+          />
+        </View>
         {errors.dob ? <Text style={styles.errorText}>{errors.dob}</Text> : null}
       </View>
 
@@ -530,6 +563,7 @@ function StepProfile({ data, onChange, onNext }) {
         {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
       </View>
 
+      {/* Location divider */}
       <View style={styles.divider}>
         <View style={styles.dividerLine} />
         <Text style={styles.dividerText}>LOCATION</Text>
@@ -542,8 +576,8 @@ function StepProfile({ data, onChange, onNext }) {
         disabled={locationLoading}
       >
         {locationLoading
-          ? <ActivityIndicator size="small" color="#C8102E" />
-          : <Ionicons name="location" size={20} color="#C8102E" />
+          ? <ActivityIndicator size="small" color={ACCENT} />
+          : <Ionicons name="locate-outline" size={20} color={ACCENT} />
         }
         <Text style={styles.locationButtonText}>
           {locationLoading ? 'Fetching location...' : 'Use current location'}
@@ -553,31 +587,34 @@ function StepProfile({ data, onChange, onNext }) {
       {locationFields.map((f) => (
         <View key={f.id} style={styles.fieldGroup}>
           <Text style={styles.label}>{f.label}{f.required && <Text style={styles.required}> *</Text>}</Text>
-          <TextInput
-            style={[styles.input, errors[f.id] && styles.inputError]}
-            placeholder={f.placeholder}
-            placeholderTextColor="#999"
-            value={data[f.id] || ""}
-            onChangeText={(text) => { onChange(f.id, text); if (errors[f.id]) setErrors(p => ({ ...p, [f.id]: '' })) }}
-            keyboardType={f.id === 'pincode' ? 'numeric' : 'default'}
-          />
+          <View style={[styles.inputRow, errors[f.id] && styles.inputRowError]}>
+            <Ionicons name={f.icon} size={18} color={ACCENT} style={styles.inputIcon} />
+            <TextInput
+              style={styles.inputField}
+              placeholder={f.placeholder}
+              placeholderTextColor="#bbb"
+              value={data[f.id] || ""}
+              onChangeText={(text) => { onChange(f.id, text); if (errors[f.id]) setErrors(p => ({ ...p, [f.id]: '' })) }}
+              keyboardType={f.id === 'pincode' ? 'numeric' : 'default'}
+            />
+          </View>
           {errors[f.id] ? <Text style={styles.errorText}>{errors[f.id]}</Text> : null}
         </View>
       ))}
 
-      <View style={styles.loginLink}>
+      <TouchableOpacity style={styles.nextButtonStandalone} onPress={() => { if (validate()) onNext() }}>
+        <LinearGradient colors={[ACCENT, '#A00D26']} style={styles.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+          <Text style={styles.nextButtonText}>Next: Choose Sport</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
+
+            <View style={styles.loginLink}>
         <Text style={styles.loginLinkText}>Already have an account? </Text>
         <TouchableOpacity onPress={() => router.replace('/login')}>
           <Text style={styles.loginAnchor}>Login</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity style={styles.nextButtonStandalone} onPress={() => { if (validate()) onNext() }}>
-        <LinearGradient colors={['#C8102E', '#A00D26']} style={styles.gradient}>
-          <Text style={styles.nextButtonText}>Next: Choose Sport</Text>
-          <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
     </View>
   )
 }
@@ -593,7 +630,7 @@ function StepSports({ selectedSports, sportData, onToggle, onSportChange, onNext
 
   return (
     <View>
-      <Text style={styles.pageTitle}>Choose Your Primary Sport</Text>
+      <Text style={styles.pageTitle}>Choose Your <Text style={styles.pageTitleAccent}>Sport</Text></Text>
       <Text style={styles.pageSub}>Select your main sport to customize your profile</Text>
 
       <View style={styles.sportGrid}>
@@ -645,9 +682,9 @@ function StepSports({ selectedSports, sportData, onToggle, onSportChange, onNext
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <LinearGradient colors={['#C8102E', '#A00D26']} style={styles.gradient}>
+          <LinearGradient colors={[ACCENT, '#A00D26']} style={styles.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             <Text style={styles.nextButtonText}>Next</Text>
-            <Ionicons name="arrow-forward-outline" size={18} color="#fff" />
+            <Ionicons name="arrow-forward" size={18} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -661,7 +698,7 @@ function StepReview({ profileData, selectedSports, sportData, onBack, onSubmit, 
 
   return (
     <View>
-      <Text style={styles.pageTitle}>Review Your Details</Text>
+      <Text style={styles.pageTitle}>Review Your <Text style={styles.pageTitleAccent}>Details</Text></Text>
       <Text style={styles.pageSub}>Please review your information before submitting</Text>
 
       <View style={styles.reviewCard}>
@@ -710,7 +747,7 @@ function StepReview({ profileData, selectedSports, sportData, onBack, onSubmit, 
           onPress={onSubmit}
           disabled={isSubmitting}
         >
-          <LinearGradient colors={['#C8102E', '#A00D26']} style={styles.gradient}>
+          <LinearGradient colors={[ACCENT, '#A00D26']} style={styles.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
             {isSubmitting
               ? <ActivityIndicator size="small" color="#fff" />
               : <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
@@ -800,21 +837,30 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#C8102E" barStyle="light-content" />
+      <StatusBar backgroundColor={ACCENT} barStyle="light-content" />
 
+      {/* ── Header ── */}
       <View style={styles.stickyHeader}>
-        <View style={styles.header}>
+        <LinearGradient colors={[ACCENT, '#a00d24']} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <View style={styles.headerContent}>
-            <Text style={styles.logoText}>PLAY<Text style={styles.logoAccent}>CONNECT</Text></Text>
-            <Text style={styles.tagline}>Stop Virtual Games. Start Real Battles.</Text>
-            <View style={styles.headerIconsRow}>
-              {['🏏', '⚽', '🏀', '🏸', '🏐', '🎾', '🏊', '🚴', '🏃', '🏑', '🏓', '🤼'].map((icon, i) => (
-                <RNText key={i} style={styles.headerIcon}>{icon}</RNText>
-              ))}
+            {/* P badge */}
+            <View style={styles.pBadge}>
+              <Text style={styles.pLetter}>P</Text>
+              <Ionicons name="walk" size={11} color="#fff" style={styles.pRunner} />
             </View>
+            {/* Brand */}
+            <Text style={styles.brandRow}>
+              <Text style={styles.brandPlay}>PLAY</Text>
+              <Text style={styles.brandConnect}>CONNECT</Text>
+            </Text>
+            <Text style={styles.tagline}>
+              {'STOP VIRTUAL GAMES. START '}
+              <Text style={styles.taglineAccent}>REAL BATTLES.</Text>
+            </Text>
           </View>
-        </View>
+        </LinearGradient>
 
+        {/* Step bar */}
         <View style={styles.stepBar}>
           <View style={styles.stepRow}>
             {STEPS.map((label, i) => (
@@ -833,7 +879,7 @@ export default function RegisterScreen() {
       </View>
 
       <ScrollView ref={scrollViewRef} style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.body}>
+        <View style={styles.card}>
           {step === 0 && <StepProfile data={profileData} onChange={handleProfileChange} onNext={goNext} />}
           {step === 1 && <StepSports selectedSports={selectedSports} sportData={sportData} onToggle={toggleSport} onSportChange={handleSportChange} onNext={goNext} onBack={goBack} />}
           {step === 2 && <StepReview profileData={profileData} selectedSports={selectedSports} sportData={sportData} onBack={goBack} onSubmit={handleSubmit} isSubmitting={isSubmitting} />}
@@ -844,110 +890,250 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  stickyHeader: { zIndex: 100, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#efefef' },
+
+  // ── Header ──
+  stickyHeader: { zIndex: 100, backgroundColor: '#efefef' },
   header: {
-    backgroundColor: '#C8102E',
-    padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 50 : 45,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 18,
+    paddingHorizontal: 20,
   },
   headerContent: { alignItems: 'center' },
-  logoText: { color: '#fff', fontSize: 24, fontFamily: 'Poppins_800ExtraBold', letterSpacing: -0.5, textAlign: 'center' },
-  logoAccent: { opacity: 0.85 },
-  tagline: { color: 'rgba(255,255,255,0.75)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 4, textAlign: 'center' },
-  headerIconsRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 10, opacity: 0.5 },
-  headerIcon: { fontSize: 16 },
-  stepBar: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0', padding: 14 },
+  pBadge: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  pLetter: { fontSize: 28, fontFamily: 'Poppins_800ExtraBold', color: '#fff', lineHeight: 34 },
+  pRunner: { position: 'absolute', bottom: 5, right: 5 },
+  brandRow: { fontSize: 22, marginBottom: 3 },
+  brandPlay:    { fontFamily: 'Poppins_800ExtraBold', color: '#fff' },
+  brandConnect: { fontFamily: 'Poppins_800ExtraBold', color: 'rgba(255,255,255,0.75)' },
+  tagline: {
+    fontSize: 9.5,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  taglineAccent: { color: '#fff', fontFamily: 'Poppins_700Bold' },
+
+  // ── Step bar ──
+  stepBar: { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0', paddingVertical: 12, paddingHorizontal: 16 },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' },
   stepItem: { alignItems: 'center', width: 72 },
-  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
-  stepCircleActive: { backgroundColor: '#C8102E', borderWidth: 2, borderColor: '#C8102E' },
-  stepCircleDone: { backgroundColor: '#C8102E' },
+  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
+  stepCircleActive: { backgroundColor: ACCENT },
+  stepCircleDone:   { backgroundColor: ACCENT },
   stepCircleText: { fontSize: 12, fontFamily: 'Poppins_700Bold', color: '#fff' },
-  stepLabel: { fontSize: 11, color: '#aaa', textAlign: 'center', marginTop: 5 },
-  stepLabelActive: { fontFamily: 'Poppins_600SemiBold', color: '#C8102E' },
+  stepLabel: { fontSize: 11, color: '#aaa', textAlign: 'center', marginTop: 5, fontFamily: 'Poppins_400Regular' },
+  stepLabelActive: { fontFamily: 'Poppins_600SemiBold', color: ACCENT },
   stepLine: { flex: 1, height: 2, backgroundColor: '#f0f0f0', marginHorizontal: 4, marginTop: 14 },
-  stepLineActive: { backgroundColor: '#C8102E' },
+  stepLineActive: { backgroundColor: ACCENT },
+
+  // ── Card / Body ──
   scrollView: { flex: 1 },
-  scrollContent: { flexGrow: 1 },
-  body: { padding: 20, paddingBottom: 40 },
-  pageTitle: { fontSize: 22, fontFamily: 'Poppins_800ExtraBold', color: '#111', marginBottom: 4 },
-  pageSub: { fontSize: 14, color: '#666', marginBottom: 24 },
-  sectionLabel: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: '#C8102E', marginBottom: 14, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  fieldGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#333', marginBottom: 6 },
-  required: { color: '#C8102E' },
-  input: { borderWidth: 1.5, borderColor: '#e5e5e5', borderRadius: 10, padding: 12, fontSize: 14, backgroundColor: '#fafafa', fontFamily: 'Poppins_400Regular' },
-  inputFlex: { flex: 1 },
-  inputError: { borderColor: '#C8102E' },
-  inputWithIcon: { flexDirection: 'row', alignItems: 'center' },
-  usernameIcon: { marginLeft: 10 },
-  textarea: { borderWidth: 1.5, borderColor: '#e5e5e5', borderRadius: 10, padding: 12, fontSize: 14, backgroundColor: '#fafafa', minHeight: 80, textAlignVertical: 'top', fontFamily: 'Poppins_400Regular' },
-  select: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1.5, borderColor: '#e5e5e5', borderRadius: 10, padding: 12, backgroundColor: '#fafafa' },
-  selectText: { fontSize: 14, color: '#111', fontFamily: 'Poppins_400Regular' },
-  placeholderText: { color: '#999' },
+  scrollContent: { flexGrow: 1, paddingBottom: 32 },
+  card: {
+    backgroundColor: '#fff',
+    marginHorizontal: 14,
+    marginTop: 14,
+    borderRadius: 22,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 3,
+    marginBottom: 14,
+  },
+
+  // ── Page title / sub ──
+  pageTitle: {
+    fontSize: 22,
+    fontFamily: 'Poppins_700Bold',
+    color: '#111',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 2,
+  },
+  pageTitleAccent: { color: ACCENT },
+  pageSub: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: 'Poppins_700Bold',
+    color: ACCENT,
+    marginBottom: 14,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  // ── Field / label ──
+  fieldGroup: { marginBottom: 14 },
+  label: { fontSize: 13, fontFamily: 'Poppins_600SemiBold', color: '#111', marginBottom: 7 },
+  required: { color: ACCENT },
+  errorText: { fontSize: 11.5, color: ACCENT, marginTop: 4, fontFamily: 'Poppins_400Regular' },
+  successText: { fontSize: 11.5, color: '#22c55e', marginTop: 4, fontFamily: 'Poppins_400Regular' },
+
+  // ── Input row (matches LoginScreen) ──
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: '#fafafa',
+    minHeight: 48,
+  },
+  inputRowError: { borderColor: ACCENT },
+  inputIcon: { marginRight: 8 },
+  inputTrailingIcon: { marginLeft: 6 },
+  inputField: {
+    flex: 1,
+    paddingVertical: 13,
+    fontSize: 14,
+    color: '#333',
+    fontFamily: 'Poppins_400Regular',
+  },
+  eyeBtn: { padding: 4 },
+
+  // ── Select ──
+  select: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 13,
+    backgroundColor: '#fafafa',
+    minHeight: 48,
+  },
+  selectText: { flex: 1, fontSize: 14, color: '#333', fontFamily: 'Poppins_400Regular' },
+  placeholderText: { color: '#bbb' },
+
+  // ── Radio ──
   radioRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  radioBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#e5e5e5', backgroundColor: '#fafafa' },
-  radioBtnSelected: { backgroundColor: '#C8102E', borderColor: '#C8102E' },
+  radioBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: '#e8e8e8', backgroundColor: '#fafafa' },
+  radioBtnSelected: { backgroundColor: ACCENT, borderColor: ACCENT },
   radioText: { fontSize: 13, color: '#555', fontFamily: 'Poppins_400Regular' },
   radioTextSelected: { color: '#fff', fontFamily: 'Poppins_600SemiBold' },
-  errorText: { fontSize: 12, color: '#C8102E', marginTop: 4, fontFamily: 'Poppins_400Regular' },
-  successText: { fontSize: 12, color: '#22c55e', marginTop: 4, fontFamily: 'Poppins_400Regular' },
-  photoUpload: { borderWidth: 2, borderColor: '#e0e0e0', borderStyle: 'dashed', borderRadius: 12, padding: 20, alignItems: 'center', marginBottom: 20, minHeight: 90, justifyContent: 'center' },
+
+  // ── Photo upload ──
+  photoUpload: {
+    borderWidth: 2,
+    borderColor: '#e8e8e8',
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 18,
+    minHeight: 100,
+    justifyContent: 'center',
+    backgroundColor: '#fafafa',
+  },
+  photoIconBg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#fff0f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   photoPreview: { width: 80, height: 80, borderRadius: 40 },
-  photoIcon: { fontSize: 28, marginBottom: 6 },
-  photoText: { fontSize: 13, color: '#aaa', fontFamily: 'Poppins_400Regular' },
-  photoChangeText: { fontSize: 11, color: '#C8102E', marginTop: 6, fontFamily: 'Poppins_600SemiBold' },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  photoText: { fontSize: 13, color: '#555', fontFamily: 'Poppins_500Medium', marginBottom: 2 },
+  photoHint: { fontSize: 11, color: '#bbb', fontFamily: 'Poppins_400Regular' },
+  photoChangeText: { fontSize: 11, color: ACCENT, marginTop: 6, fontFamily: 'Poppins_600SemiBold' },
+
+  // ── Divider ──
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 18 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#f0f0f0' },
-  dividerText: { fontSize: 12, color: '#bbb', fontFamily: 'Poppins_500Medium', marginHorizontal: 10 },
-  locationButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, backgroundColor: '#f5f5f5', borderRadius: 12, gap: 8, marginBottom: 16 },
+  dividerText: { fontSize: 11, color: '#bbb', fontFamily: 'Poppins_500Medium', marginHorizontal: 10, letterSpacing: 0.8 },
+
+  // ── Location button ──
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 13,
+    backgroundColor: '#fff5f7',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: ACCENT + '30',
+    gap: 8,
+    marginBottom: 14,
+  },
   locationButtonDisabled: { opacity: 0.6 },
-  locationButtonText: { fontSize: 14, color: '#C8102E', fontFamily: 'Poppins_600SemiBold' },
-  loginLink: { flexDirection: 'row', justifyContent: 'center', marginVertical: 16 },
+  locationButtonText: { fontSize: 13, color: ACCENT, fontFamily: 'Poppins_600SemiBold' },
+
+  // ── Login link ──
+  loginLink: { flexDirection: 'row', justifyContent: 'center', marginVertical: 14 },
   loginLinkText: { fontSize: 13, color: '#666', fontFamily: 'Poppins_400Regular' },
-  loginAnchor: { color: '#C8102E', fontFamily: 'Poppins_700Bold' },
-  nextButton: { flex: 1, borderRadius: 12, overflow: 'hidden' },
-  nextButtonStandalone: { borderRadius: 12, overflow: 'hidden', marginTop: 16 },
-  gradient: { padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  loginAnchor: { color: ACCENT, fontFamily: 'Poppins_700Bold', fontSize: 13 },
+
+  // ── Buttons ──
+  nextButtonStandalone: { borderRadius: 12, overflow: 'hidden', marginTop: 8 },
+  gradient: { paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   nextButtonText: { color: '#fff', fontSize: 15, fontFamily: 'Poppins_700Bold', lineHeight: 20 },
   buttonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 },
   backButton: { flex: 1, padding: 14, backgroundColor: '#f5f5f5', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  backButtonText: { color: '#555', fontSize: 15, fontFamily: 'Poppins_600SemiBold', lineHeight: 20 },
-  sportGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  sportCard: { flex: 1, minWidth: '45%', padding: 16, borderRadius: 14, borderWidth: 2, borderColor: '#e8e8e8', backgroundColor: '#fafafa', alignItems: 'center', position: 'relative' },
-  sportCardSelected: { borderColor: '#C8102E', backgroundColor: '#FFF0F2' },
+  backButtonText: { color: '#555', fontSize: 14, fontFamily: 'Poppins_600SemiBold', lineHeight: 20 },
+  nextButton: { flex: 1, borderRadius: 12, overflow: 'hidden' },
+
+  // ── Sport grid ──
+  sportGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 22 },
+  sportCard: { flex: 1, minWidth: '45%', padding: 16, borderRadius: 14, borderWidth: 1.5, borderColor: '#e8e8e8', backgroundColor: '#fafafa', alignItems: 'center', position: 'relative' },
+  sportCardSelected: { borderColor: ACCENT, backgroundColor: '#fff0f2' },
   sportEmoji: { fontSize: 28, marginBottom: 6 },
-  sportName: { fontSize: 13, color: '#333', fontFamily: 'Poppins_500Medium' },
-  sportNameSelected: { fontFamily: 'Poppins_700Bold', color: '#C8102E' },
-  sportCheck: { position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: 9, backgroundColor: '#C8102E', justifyContent: 'center', alignItems: 'center' },
+  sportName: { fontSize: 12.5, color: '#333', fontFamily: 'Poppins_500Medium', textAlign: 'center' },
+  sportNameSelected: { fontFamily: 'Poppins_700Bold', color: ACCENT },
+  sportCheck: { position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: 9, backgroundColor: ACCENT, justifyContent: 'center', alignItems: 'center' },
   sportCheckText: { color: '#fff', fontSize: 10, fontFamily: 'Poppins_700Bold' },
-  sportFormCard: { borderWidth: 1.5, borderColor: '#f0f0f0', borderRadius: 16, padding: 16, marginBottom: 16, backgroundColor: '#fff' },
-  sportFormHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  sportFormCard: { borderWidth: 1.5, borderColor: '#f0f0f0', borderRadius: 16, padding: 16, marginBottom: 14, backgroundColor: '#fff' },
+  sportFormHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
   sportFormEmoji: { fontSize: 24 },
   sportFormTitle: { fontSize: 15, fontFamily: 'Poppins_700Bold', color: '#111' },
-  sportFormSubtitle: { fontSize: 12, color: '#888', marginTop: 2, fontFamily: 'Poppins_400Regular' },
+  sportFormSubtitle: { fontSize: 11.5, color: '#888', marginTop: 2, fontFamily: 'Poppins_400Regular' },
+
+  // ── Modal ──
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 12, width: '80%', maxHeight: '60%' },
-  modalTitle: { fontSize: 16, fontFamily: 'Poppins_600SemiBold', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', textAlign: 'center' },
+  modalContent: { backgroundColor: '#fff', borderRadius: 16, width: '80%', maxHeight: '60%' },
+  modalTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', textAlign: 'center', color: '#111' },
   modalOptions: { maxHeight: 300 },
-  modalOption: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  modalOptionText: { fontSize: 14, textAlign: 'center', fontFamily: 'Poppins_400Regular' },
+  modalOption: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  modalOptionText: { fontSize: 14, textAlign: 'center', fontFamily: 'Poppins_400Regular', color: '#333' },
   modalCancel: { padding: 14, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  modalCancelText: { fontSize: 14, color: '#C8102E', textAlign: 'center', fontFamily: 'Poppins_600SemiBold' },
+  modalCancelText: { fontSize: 14, color: ACCENT, textAlign: 'center', fontFamily: 'Poppins_600SemiBold' },
+
+  // ── Review ──
   reviewCard: { borderWidth: 1.5, borderColor: '#f0f0f0', borderRadius: 16, overflow: 'hidden', marginBottom: 16, backgroundColor: '#fff' },
-  reviewHeader: { backgroundColor: '#C8102E', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  reviewHeader: { backgroundColor: ACCENT, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   reviewPhoto: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
-  reviewAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center' },
+  reviewAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center' },
   reviewAvatarText: { fontSize: 20, color: '#fff', fontFamily: 'Poppins_700Bold' },
-  reviewName: { fontSize: 17, fontFamily: 'Poppins_700Bold', color: '#fff' },
+  reviewName: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: '#fff' },
   reviewHandle: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 1, fontFamily: 'Poppins_400Regular' },
   reviewBody: { padding: 14 },
-  reviewRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f8f8f8' },
+  reviewRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#f8f8f8' },
   reviewIcon: { fontSize: 16, marginTop: 1 },
-  reviewKey: { fontSize: 12, color: '#888', marginBottom: 2, fontFamily: 'Poppins_400Regular' },
-  reviewVal: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', color: '#111' },
+  reviewKey: { fontSize: 11.5, color: '#888', marginBottom: 2, fontFamily: 'Poppins_400Regular' },
+  reviewVal: { fontSize: 13.5, fontFamily: 'Poppins_600SemiBold', color: '#111' },
   reviewButtonRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 },
   submitButton: { flex: 1, borderRadius: 12, overflow: 'hidden' },
   submitButtonDisabled: { opacity: 0.7 },

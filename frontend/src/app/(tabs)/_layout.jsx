@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import { Tabs, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout, toggleTheme } from '../../store/userSlice'
@@ -27,33 +28,48 @@ function Text(props) {
 
 function AppHeader({ onMenuPress, onNotifPress, notifCount }) {
   const insets = useSafeAreaInsets()
+  const topPad = insets.top || (Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 44)
+
   return (
-    <View style={[styles.header, { paddingTop: insets.top || (Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 44) }]}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.logoText}>PLAY<Text style={styles.logoAccent}>CONNECT</Text></Text>
-          <Text style={styles.tagline}>Stop Virtual Games. Start Real Battles.</Text>
+    <LinearGradient
+      colors={[ACCENT, '#a00d24']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.header, { paddingTop: topPad + 10 }]}
+    >
+      {/* Left: P badge + brand name + tagline */}
+      <View style={styles.headerLeft}>
+        <View style={styles.pBadge}>
+          <Text style={styles.pLetter}>P</Text>
+          <Ionicons name="walk" size={9} color="#fff" style={styles.pRunner} />
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={onNotifPress} style={styles.notifBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {notifCount > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : String(notifCount)}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onMenuPress} style={styles.menuBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="menu" size={28} color="#fff" />
-          </TouchableOpacity>
+        <View style={styles.brandCol}>
+          <Text style={styles.brandRow}>
+            <Text style={styles.brandPlay}>PLAY</Text>
+            <Text style={styles.brandConnect}>CONNECT</Text>
+          </Text>
+          <Text style={styles.tagline}>
+            {'STOP VIRTUAL GAMES. START '}
+            <Text style={styles.taglineAccent}>REAL BATTLES.</Text>
+          </Text>
         </View>
       </View>
-      <View style={styles.headerIconsRow}>
-        {['🏏', '⚽', '🏀', '🏸', '🏐', '🎾', '🏊', '🚴', '🏃', '🏑', '🏓', '🤼'].map((icon, i) => (
-          <RNText key={i} style={styles.headerIcon}>{icon}</RNText>
-        ))}
+
+      {/* Right: notifications + menu */}
+      <View style={styles.headerRight}>
+        <TouchableOpacity onPress={onNotifPress} style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="notifications-outline" size={22} color="#fff" />
+          {notifCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{notifCount > 99 ? '99+' : String(notifCount)}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onMenuPress} style={styles.headerBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="menu" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
-    </View>
+    </LinearGradient>
   )
 }
 
@@ -247,23 +263,45 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { backgroundColor: ACCENT, paddingHorizontal: 16, paddingBottom: 10 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerLeft: { flex: 1 },
-  logoText: { color: '#fff', fontSize: 20, fontFamily: 'Poppins_800ExtraBold', letterSpacing: -0.5 },
-  logoAccent: { opacity: 0.85 },
-  tagline: { color: 'rgba(255,255,255,0.75)', fontSize: 9, fontFamily: 'Poppins_400Regular', letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  notifBtn: { padding: 4, position: 'relative' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingBottom: 14,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  pBadge: {
+    width: 42,
+    height: 42,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  pLetter: { fontSize: 23, fontFamily: 'Poppins_800ExtraBold', color: '#fff', lineHeight: 28 },
+  pRunner: { position: 'absolute', bottom: 4, right: 4 },
+  brandCol: { gap: 2 },
+  brandRow: { fontSize: 18, lineHeight: 22 },
+  brandPlay: { fontFamily: 'Poppins_800ExtraBold', color: '#fff' },
+  brandConnect: { fontFamily: 'Poppins_800ExtraBold', color: 'rgba(255,255,255,0.75)' },
+  tagline: {
+    fontSize: 8.5,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  taglineAccent: { color: '#fff', fontFamily: 'Poppins_700Bold' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerBtn: { padding: 8, position: 'relative' },
   notifBadge: {
-    position: 'absolute', top: 0, right: 0,
-    backgroundColor: '#FFD700', borderRadius: 8, minWidth: 16, height: 16,
+    position: 'absolute', top: 4, right: 4,
+    backgroundColor: '#FFD700', borderRadius: 7, minWidth: 15, height: 15,
     justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3,
   },
-  notifBadgeText: { color: '#111', fontSize: 9, fontFamily: 'Poppins_700Bold' },
-  menuBtn: { padding: 4, marginLeft: 4 },
-  headerIconsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8, opacity: 0.5 },
-  headerIcon: { fontSize: 14 },
+  notifBadgeText: { color: '#111', fontSize: 8.5, fontFamily: 'Poppins_700Bold' },
   tabBar: {
     backgroundColor: '#fff',
     borderTopColor: '#f0f0f0',
