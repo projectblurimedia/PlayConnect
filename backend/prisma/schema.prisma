@@ -87,6 +87,8 @@ model User {
   longitude   Float?
 
   passwordHash    String?
+  email           String? @unique
+  googleId        String? @unique
   isVerified      Boolean @default(false)
   fcmToken        String?
 

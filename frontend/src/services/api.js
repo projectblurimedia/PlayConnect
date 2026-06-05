@@ -41,6 +41,21 @@ export const verifyOTP = async (payload) => {
   return res.data
 }
 
+export const forgotPasswordSendOTP = async (phone) => {
+  const res = await api.post('/api/auth/forgot-password/send', { phone })
+  return res.data
+}
+
+export const resetPassword = async (payload) => {
+  const res = await api.post('/api/auth/forgot-password/reset', payload)
+  return res.data
+}
+
+export const googleAuth = async (accessToken) => {
+  const res = await api.post('/api/auth/google', { accessToken })
+  return res.data
+}
+
 export const uploadProfilePhoto = async (base64, mimeType = 'image/jpeg') => {
   const res = await api.post('/api/upload/profile-photo', { base64, mimeType })
   return res.data

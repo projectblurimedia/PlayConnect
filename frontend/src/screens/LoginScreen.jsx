@@ -19,7 +19,7 @@ import { useDispatch } from 'react-redux'
 import * as Google from 'expo-auth-session/providers/google'
 import * as WebBrowser from 'expo-web-browser'
 import { setUser } from '../store/userSlice'
-import { loginUser } from '../services/api'
+import { loginUser, googleAuth } from '../services/api'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -69,18 +69,24 @@ export default function LoginScreen() {
   const handleGoogleToken = async (accessToken) => {
     if (!accessToken) { setGoogleLoading(false); return }
     try {
-      const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-      const info = await infoRes.json()
-      // TODO: send `info` to your backend /api/auth/google to issue a JWT
-      // For now show what we got so you can wire it up
-      Alert.alert(
-        'Google Connected',
-        `Signed in as ${info.name} (${info.email}).\n\nAdd a POST /api/auth/google endpoint on your backend to complete the flow.`,
-      )
+      const result = await googleAuth(accessToken)
+      if (result.success) {
+        dispatch(setUser({ user: result.user, token: result.token }))
+        router.replace('/home')
+      } else if (result.needsRegistration) {
+        Alert.alert(
+          'Account Not Found',
+          `No PlayConnect account is linked to ${result.googleInfo?.email}.\n\nPlease register first.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Register', onPress: () => router.replace('/register') },
+          ],
+        )
+      } else {
+        Alert.alert('Sign-In Failed', result.error || 'Google sign-in failed.')
+      }
     } catch {
-      Alert.alert('Error', 'Could not fetch Google profile.')
+      Alert.alert('Error', 'Could not complete Google sign-in. Please try again.')
     } finally {
       setGoogleLoading(false)
     }
@@ -194,7 +200,7 @@ export default function LoginScreen() {
             </View>
 
             {/* Forgot password */}
-            <TouchableOpacity style={styles.forgotRow}>
+            <TouchableOpacity style={styles.forgotRow} onPress={() => router.push('/(auth)/forgot-password')}>
               <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
 
@@ -262,7 +268,6 @@ export default function LoginScreen() {
               {[
                 { icon: 'shield-checkmark-outline', label: 'Secure Login' },
                 { icon: 'flash-outline',            label: 'Quick Access' },
-                { icon: 'people-outline',           label: 'Join Millions' },
                 { icon: 'trophy-outline',           label: 'Play. Connect. Win.' },
               ].map((f) => (
                 <View key={f.label} style={styles.featureItem}>
@@ -298,28 +303,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     overflow: 'hidden',
   },
-  // Blobs stay at the very edges and bottom — don't reach centre text
+  // Blobs — pushed far down/out so they only show as small corner accents
   blobLeft: {
     position: 'absolute',
-    left: -90,
-    bottom: -50,
-    width: 180,
-    height: 240,
+    left: -100,
+    bottom: -90,
+    width: 170,
+    height: 150,
     backgroundColor: ACCENT,
-    borderRadius: 90,
+    borderRadius: 80,
     transform: [{ rotate: '-25deg' }],
     opacity: 0.88,
+    zIndex: 1,
+    elevation: 1,
   },
   blobRight: {
     position: 'absolute',
-    right: -90,
-    bottom: -50,
-    width: 180,
-    height: 240,
+    right: -100,
+    bottom: -90,
+    width: 170,
+    height: 150,
     backgroundColor: ACCENT,
-    borderRadius: 90,
+    borderRadius: 80,
     transform: [{ rotate: '25deg' }],
     opacity: 0.88,
+    zIndex: 1,
+    elevation: 1,
   },
   iconsRow: {
     position: 'absolute',
@@ -330,8 +339,8 @@ const styles = StyleSheet.create({
   },
   sportIcon: { fontSize: 26 },
 
-  // logoBlock sits above blobs via zIndex
-  logoBlock: { alignItems: 'center', zIndex: 10 },
+  // logoBlock always renders above blobs
+  logoBlock: { alignItems: 'center', zIndex: 10, elevation: 10 },
 
   // P badge
   pBadge: {
