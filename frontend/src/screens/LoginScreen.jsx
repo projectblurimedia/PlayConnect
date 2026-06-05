@@ -29,8 +29,7 @@ const GOOGLE_IOS_CLIENT_ID     = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com'
 const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com'
 // ───────────────────────────────────────────────────────────────────────────
 
-const ACCENT  = '#C8102E'
-const YELLOW  = '#FFE566'
+const ACCENT = '#C8102E'
 
 function Text({ style, ...props }) {
   return <RNText {...props} style={[{ fontFamily: 'Poppins_400Regular' }, style]} />
@@ -113,32 +112,39 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={ACCENT} />
 
-      {/* ── Red Header ── */}
+      {/* ── Header ── */}
       <View style={styles.header}>
-        {/* faint sport icons */}
+        {/* Red blobs — pushed far to edges so they don't cover centre text */}
+        <View style={styles.blobLeft} />
+        <View style={styles.blobRight} />
+
+        {/* Faint sport icons row */}
         <View style={styles.iconsRow}>
           {['🏏', '⚽', '🏀', '🏸'].map((icon, i) => (
             <RNText key={i} style={styles.sportIcon}>{icon}</RNText>
           ))}
         </View>
 
-        {/* P badge */}
-        <View style={styles.pBadge}>
-          <Text style={styles.pLetter}>P</Text>
-          <Ionicons name="walk" size={12} color={ACCENT} style={styles.pRunner} />
+        {/* All text content sits above blobs */}
+        <View style={styles.logoBlock}>
+          {/* P badge */}
+          <View style={styles.pBadge}>
+            <Text style={styles.pLetter}>P</Text>
+            <Ionicons name="walk" size={12} color="#fff" style={styles.pRunner} />
+          </View>
+
+          {/* Brand name */}
+          <Text style={styles.brandRow}>
+            <Text style={styles.brandPlay}>PLAY</Text>
+            <Text style={styles.brandConnect}>CONNECT</Text>
+          </Text>
+
+          {/* Tagline — single Text node so no inline nesting wrapping issues */}
+          <Text style={styles.tagline}>
+            {'STOP VIRTUAL GAMES. START '}
+            <Text style={styles.taglineAccent}>REAL BATTLES.</Text>
+          </Text>
         </View>
-
-        {/* Brand name */}
-        <Text style={styles.brandRow}>
-          <Text style={styles.brandPlay}>PLAY</Text>
-          <Text style={styles.brandConnect}>CONNECT</Text>
-        </Text>
-
-        {/* Tagline */}
-        <Text style={styles.tagline} numberOfLines={2}>
-          STOP VIRTUAL GAMES. START{' '}
-          <Text style={styles.taglineAccent}>REAL BATTLES.</Text>
-        </Text>
       </View>
 
       {/* ── Scrollable card area ── */}
@@ -285,54 +291,83 @@ const styles = StyleSheet.create({
 
   // ── Header ──────────────────────────────────────────────────────────────
   header: {
-    backgroundColor: ACCENT,
+    backgroundColor: '#efefef',
     paddingTop: Platform.OS === 'ios' ? 54 : 36,
     paddingBottom: 28,
     alignItems: 'center',
     paddingHorizontal: 20,
+    overflow: 'hidden',
+  },
+  // Blobs stay at the very edges and bottom — don't reach centre text
+  blobLeft: {
+    position: 'absolute',
+    left: -90,
+    bottom: -50,
+    width: 180,
+    height: 240,
+    backgroundColor: ACCENT,
+    borderRadius: 90,
+    transform: [{ rotate: '-25deg' }],
+    opacity: 0.88,
+  },
+  blobRight: {
+    position: 'absolute',
+    right: -90,
+    bottom: -50,
+    width: 180,
+    height: 240,
+    backgroundColor: ACCENT,
+    borderRadius: 90,
+    transform: [{ rotate: '25deg' }],
+    opacity: 0.88,
   },
   iconsRow: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 54 : 36,
     flexDirection: 'row',
     gap: 28,
-    opacity: 0.15,
+    opacity: 0.12,
   },
   sportIcon: { fontSize: 26 },
+
+  // logoBlock sits above blobs via zIndex
+  logoBlock: { alignItems: 'center', zIndex: 10 },
 
   // P badge
   pBadge: {
     width: 56,
     height: 56,
-    backgroundColor: '#fff',
+    backgroundColor: ACCENT,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.22,
     shadowRadius: 6,
     elevation: 6,
+    zIndex: 10,
   },
-  pLetter: { fontSize: 36, fontFamily: 'Poppins_800ExtraBold', color: ACCENT, lineHeight: 42 },
+  pLetter: { fontSize: 36, fontFamily: 'Poppins_800ExtraBold', color: '#fff', lineHeight: 42 },
   pRunner: { position: 'absolute', bottom: 7, right: 7 },
 
   // Brand
-  brandRow: { fontSize: 28, marginBottom: 6 },
-  brandPlay:    { fontFamily: 'Poppins_800ExtraBold', color: '#fff' },
-  brandConnect: { fontFamily: 'Poppins_800ExtraBold', color: YELLOW },
+  brandRow: { fontSize: 28, marginBottom: 6, zIndex: 10 },
+  brandPlay:    { fontFamily: 'Poppins_800ExtraBold', color: '#111' },
+  brandConnect: { fontFamily: 'Poppins_800ExtraBold', color: ACCENT },
 
   // Tagline
   tagline: {
     fontSize: 10.5,
-    color: 'rgba(255,255,255,0.85)',
+    color: '#444',
     letterSpacing: 1.4,
     textTransform: 'uppercase',
     textAlign: 'center',
     lineHeight: 17,
+    zIndex: 10,
   },
-  taglineAccent: { color: YELLOW, fontFamily: 'Poppins_700Bold' },
+  taglineAccent: { color: ACCENT, fontFamily: 'Poppins_700Bold' },
 
   // ── Card ─────────────────────────────────────────────────────────────────
   scrollContent: { flexGrow: 1, paddingBottom: 40 },
