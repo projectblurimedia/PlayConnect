@@ -39,7 +39,6 @@ export default function ForgotPasswordScreen() {
   const [showConfirm,  setShowConfirm]  = useState(false)
   const [loading,      setLoading]      = useState(false)
   const [resendTimer,  setResendTimer]  = useState(0)
-  const [devOtp,       setDevOtp]       = useState(null)
 
   const otpRefs = useRef([])
 
@@ -65,7 +64,6 @@ export default function ForgotPasswordScreen() {
       const res = await forgotPasswordSendOTP(digits)
       if (res.success) {
         setMaskedPhone(res.maskedPhone)
-        setDevOtp(res.devOtp || null)
         setStep('reset')
         startCountdown()
         setTimeout(() => otpRefs.current[0]?.focus(), 300)
@@ -208,13 +206,6 @@ export default function ForgotPasswordScreen() {
                   </View>
                 </View>
 
-                {/* Dev OTP hint */}
-                {devOtp && (
-                  <View style={styles.devHintBox}>
-                    <Ionicons name="bug-outline" size={14} color="#b45309" />
-                    <Text style={styles.devHintText}>Dev OTP: {devOtp}</Text>
-                  </View>
-                )}
 
                 {/* OTP */}
                 <Text style={styles.label}>Enter OTP</Text>
@@ -291,7 +282,7 @@ export default function ForgotPasswordScreen() {
 
                 <TouchableOpacity
                   style={styles.changeRow}
-                  onPress={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setDevOtp(null) }}
+                  onPress={() => { setStep('phone'); setOtp(['', '', '', '', '', '']) }}
                 >
                   <Text style={styles.changeText}>Change phone number</Text>
                 </TouchableOpacity>
@@ -329,8 +320,6 @@ const styles = StyleSheet.create({
   maskedPhoneText: { flex: 1, fontSize: 16, fontFamily: 'Poppins_600SemiBold', color: '#111', letterSpacing: 1 },
   lockedBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: ACCENT, justifyContent: 'center', alignItems: 'center' },
 
-  devHintBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fef3c7', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 16 },
-  devHintText: { fontSize: 13, color: '#92400e', fontFamily: 'Poppins_500Medium' },
 
   otpRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
   otpBox: { width: 46, height: 54, borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 12, fontSize: 22, fontFamily: 'Poppins_700Bold', color: '#111', backgroundColor: '#fafafa', textAlign: 'center' },

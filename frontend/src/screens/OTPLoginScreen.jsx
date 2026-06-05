@@ -38,8 +38,7 @@ export default function OTPLoginScreen() {
   const [maskedPhone, setMaskedPhone] = useState('')  // returned by backend
   const [otp,         setOtp]         = useState(['', '', '', '', '', ''])
   const [loading,     setLoading]     = useState(false)
-  const [resendTimer, setResendTimer] = useState(0)
-  const [devOtp,      setDevOtp]      = useState(null) // dev-mode hint
+  const [resendTimer, setResendTimer] = useState(0) // dev-mode hint
 
   const otpRefs = useRef([])
 
@@ -65,8 +64,7 @@ export default function OTPLoginScreen() {
     try {
       const res = await sendOTP(digits)
       if (res.success) {
-        setMaskedPhone(res.maskedPhone)   // e.g. "******6789"
-        setDevOtp(res.devOtp || null)     // only present in dev mode
+        setMaskedPhone(res.maskedPhone)
         setStep('otp')
         startCountdown()
         // Auto-focus first OTP box
@@ -207,14 +205,6 @@ export default function OTPLoginScreen() {
                   </View>
                 </View>
 
-                {/* Dev-mode OTP hint */}
-                {devOtp && (
-                  <View style={styles.devHintBox}>
-                    <Ionicons name="bug-outline" size={14} color="#b45309" />
-                    <Text style={styles.devHintText}>Dev OTP: {devOtp}</Text>
-                  </View>
-                )}
-
                 {/* OTP boxes */}
                 <Text style={styles.label}>Enter OTP</Text>
                 <View style={styles.otpRow}>
@@ -261,7 +251,7 @@ export default function OTPLoginScreen() {
 
                 <TouchableOpacity
                   style={styles.changeRow}
-                  onPress={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setDevOtp(null) }}
+                  onPress={() => { setStep('phone'); setOtp(['', '', '', '', '', '']) }}
                 >
                   <Text style={styles.changeText}>Change phone number</Text>
                 </TouchableOpacity>
@@ -355,19 +345,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // Dev OTP hint
-  devHintBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#fef3c7',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 18,
-  },
-  devHintText: { fontSize: 13, color: '#92400e', fontFamily: 'Poppins_500Medium' },
 
   // OTP boxes
   otpRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
