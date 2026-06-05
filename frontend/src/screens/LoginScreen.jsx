@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text as RNText,
@@ -13,34 +13,84 @@ import {
   ActivityIndicator,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, AntDesign } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useDispatch } from 'react-redux'
+import * as Google from 'expo-auth-session/providers/google'
+import * as WebBrowser from 'expo-web-browser'
 import { setUser } from '../store/userSlice'
 import { loginUser } from '../services/api'
 
-const poppins = { fontFamily: 'Poppins_400Regular' }
-const ACCENT = '#C8102E'
+WebBrowser.maybeCompleteAuthSession()
+
+// ── Replace these with your Google Cloud OAuth 2.0 client IDs ──────────────
+const GOOGLE_WEB_CLIENT_ID     = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com'
+const GOOGLE_IOS_CLIENT_ID     = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com'
+const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com'
+// ───────────────────────────────────────────────────────────────────────────
+
+const ACCENT  = '#C8102E'
+const YELLOW  = '#FFE566'
 
 function Text({ style, ...props }) {
-  return <RNText {...props} style={[poppins, style]} />
+  return <RNText {...props} style={[{ fontFamily: 'Poppins_400Regular' }, style]} />
 }
-
 function TextInput({ style, ...props }) {
-  return <RNTextInput {...props} style={[poppins, style]} />
+  return <RNTextInput {...props} style={[{ fontFamily: 'Poppins_400Regular' }, style]} />
 }
 
 export default function LoginScreen() {
-  const router = useRouter()
+  const router   = useRouter()
   const dispatch = useDispatch()
-  const [identifier, setIdentifier] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
 
+  const [identifier,   setIdentifier]   = useState('')
+  const [password,     setPassword]     = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading,      setLoading]      = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  // ── Google OAuth ────────────────────────────────────────────────────────
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId:     GOOGLE_WEB_CLIENT_ID,
+    iosClientId:     GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+  })
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      handleGoogleToken(response.authentication?.accessToken)
+    } else if (response?.type === 'error') {
+      Alert.alert('Google Sign-In Failed', response.error?.message || 'Try again.')
+      setGoogleLoading(false)
+    } else if (response?.type === 'cancel' || response?.type === 'dismiss') {
+      setGoogleLoading(false)
+    }
+  }, [response])
+
+  const handleGoogleToken = async (accessToken) => {
+    if (!accessToken) { setGoogleLoading(false); return }
+    try {
+      const infoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      const info = await infoRes.json()
+      // TODO: send `info` to your backend /api/auth/google to issue a JWT
+      // For now show what we got so you can wire it up
+      Alert.alert(
+        'Google Connected',
+        `Signed in as ${info.name} (${info.email}).\n\nAdd a POST /api/auth/google endpoint on your backend to complete the flow.`,
+      )
+    } catch {
+      Alert.alert('Error', 'Could not fetch Google profile.')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
+  // ── Email / Password login ──────────────────────────────────────────────
   const handleLogin = async () => {
     if (!identifier.trim() || !password) {
-      Alert.alert('Error', 'Please enter your phone/username and password')
+      Alert.alert('Error', 'Please enter your email/phone and password')
       return
     }
     setLoading(true)
@@ -63,93 +113,165 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={ACCENT} />
 
-      <View style={styles.headerBackground}>
-        <View style={styles.headerContent}>
-          <Text style={styles.appName}>PLAY<Text style={styles.appNameAccent}>CONNECT</Text></Text>
-          <Text style={styles.tagline}>Stop Virtual Games. Start Real Battles.</Text>
-          <View style={styles.headerIconsRow}>
-            {['🏏', '⚽', '🏀', '🏸', '🏐', '🎾', '🏊', '🚴', '🏃', '🏑', '🏓', '🤼'].map((icon, i) => (
-              <RNText key={i} style={styles.headerIcon}>{icon}</RNText>
-            ))}
-          </View>
+      {/* ── Red Header ── */}
+      <View style={styles.header}>
+        {/* faint sport icons */}
+        <View style={styles.iconsRow}>
+          {['🏏', '⚽', '🏀', '🏸'].map((icon, i) => (
+            <RNText key={i} style={styles.sportIcon}>{icon}</RNText>
+          ))}
         </View>
+
+        {/* P badge */}
+        <View style={styles.pBadge}>
+          <Text style={styles.pLetter}>P</Text>
+          <Ionicons name="walk" size={12} color={ACCENT} style={styles.pRunner} />
+        </View>
+
+        {/* Brand name */}
+        <Text style={styles.brandRow}>
+          <Text style={styles.brandPlay}>PLAY</Text>
+          <Text style={styles.brandConnect}>CONNECT</Text>
+        </Text>
+
+        {/* Tagline */}
+        <Text style={styles.tagline} numberOfLines={2}>
+          STOP VIRTUAL GAMES. START{' '}
+          <Text style={styles.taglineAccent}>REAL BATTLES.</Text>
+        </Text>
       </View>
 
+      {/* ── Scrollable card area ── */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-          <View style={styles.loginCard}>
-            <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeTitle}>Welcome Back!</Text>
-              <Text style={styles.welcomeSubtitle}>Login with phone number or username</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.card}>
+
+            {/* Welcome */}
+            <Text style={styles.welcomeTitle}>
+              Welcome <Text style={styles.welcomeAccent}>Back!</Text>
+            </Text>
+            <Text style={styles.welcomeSub}>Login to continue your journey</Text>
+
+            {/* Email / Phone input */}
+            <View style={styles.inputRow}>
+              <Ionicons name="mail-outline" size={20} color={ACCENT} style={styles.inputIconLeft} />
+              <TextInput
+                style={styles.inputField}
+                placeholder="Email or Phone Number"
+                placeholderTextColor="#bbb"
+                value={identifier}
+                onChangeText={setIdentifier}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
             </View>
 
-            <View style={styles.formSection}>
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <Ionicons name="person-outline" size={20} color="#888" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Phone number or username"
-                  placeholderTextColor="#999"
-                  value={identifier}
-                  onChangeText={setIdentifier}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIcon}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#888" />
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#999"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                />
-                <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(p => !p)}>
-                  <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={22} color="#888" />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-                <LinearGradient colors={[ACCENT, '#A00D26']} style={styles.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                  {loading
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <>
-                        <Text style={styles.loginButtonText}>Login</Text>
-                        <Ionicons name="arrow-forward-outline" size={20} color="#fff" />
-                      </>
-                  }
-                </LinearGradient>
+            {/* Password input */}
+            <View style={styles.inputRow}>
+              <Ionicons name="lock-closed-outline" size={20} color={ACCENT} style={styles.inputIconLeft} />
+              <TextInput
+                style={styles.inputField}
+                placeholder="Password"
+                placeholderTextColor="#bbb"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn}>
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={22} color="#bbb" />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.featuresSection}>
+            {/* Forgot password */}
+            <TouchableOpacity style={styles.forgotRow}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
+            {/* Login button */}
+            <TouchableOpacity
+              style={styles.loginBtn}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={[ACCENT, '#a00d24']}
+                style={styles.loginGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {loading
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <>
+                      <Text style={styles.loginBtnText}>Login</Text>
+                      <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    </>
+                }
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* OR divider */}
+            <View style={styles.orRow}>
+              <View style={styles.orLine} />
+              <Text style={styles.orLabel}>OR CONTINUE WITH</Text>
+              <View style={styles.orLine} />
+            </View>
+
+            {/* Google button (full-width) */}
+            <TouchableOpacity
+              style={styles.googleBtn}
+              onPress={() => {
+                setGoogleLoading(true)
+                promptAsync()
+              }}
+              disabled={!request || googleLoading}
+              activeOpacity={0.8}
+            >
+              {googleLoading
+                ? <ActivityIndicator size="small" color="#EA4335" />
+                : <>
+                    <AntDesign name="google" size={20} color="#EA4335" />
+                    <Text style={styles.googleBtnText}>Continue with Google</Text>
+                  </>
+              }
+            </TouchableOpacity>
+
+            {/* OTP button */}
+            <TouchableOpacity
+              style={styles.otpBtn}
+              onPress={() => router.push('/(auth)/otp-login')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="call-outline" size={20} color={ACCENT} />
+              <Text style={styles.otpBtnText}>Login with OTP</Text>
+            </TouchableOpacity>
+
+            {/* Feature strip */}
+            <View style={styles.featuresRow}>
               {[
                 { icon: 'shield-checkmark-outline', label: 'Secure Login' },
-                { icon: 'flash-outline', label: 'Quick Access' },
-                { icon: 'people-outline', label: 'Join Players' },
-                { icon: 'trophy-outline', label: 'Play. Connect. Win.' },
+                { icon: 'flash-outline',            label: 'Quick Access' },
+                { icon: 'people-outline',           label: 'Join Millions' },
+                { icon: 'trophy-outline',           label: 'Play. Connect. Win.' },
               ].map((f) => (
                 <View key={f.label} style={styles.featureItem}>
-                  <View style={styles.featureIconBg}>
-                    <Ionicons name={f.icon} size={18} color={ACCENT} />
-                  </View>
-                  <Text style={styles.featureText}>{f.label}</Text>
+                  <Ionicons name={f.icon} size={22} color={ACCENT} />
+                  <Text style={styles.featureLabel}>{f.label}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          <View style={styles.signUpSection}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
+          {/* Sign-up footer */}
+          <View style={styles.signupRow}>
+            <Text style={styles.signupText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => router.replace('/register')}>
-              <Text style={styles.signUpLink}>Sign Up</Text>
+              <Text style={styles.signupLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -159,55 +281,164 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  scrollContainer: { flexGrow: 1, paddingBottom: 40 },
-  headerBackground: {
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+
+  // ── Header ──────────────────────────────────────────────────────────────
+  header: {
     backgroundColor: ACCENT,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 54 : 36,
+    paddingBottom: 28,
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  headerContent: { alignItems: 'center', paddingHorizontal: 16 },
-  appName: { fontSize: 24, fontFamily: 'Poppins_800ExtraBold', color: '#fff', letterSpacing: -0.5 },
-  appNameAccent: { opacity: 0.85 },
-  tagline: { fontSize: 11, color: 'rgba(255,255,255,0.75)', letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 4 },
-  headerIconsRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 10, opacity: 0.75 },
-  headerIcon: { fontSize: 20 },
-  loginCard: {
+  iconsRow: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 54 : 36,
+    flexDirection: 'row',
+    gap: 28,
+    opacity: 0.15,
+  },
+  sportIcon: { fontSize: 26 },
+
+  // P badge
+  pBadge: {
+    width: 56,
+    height: 56,
     backgroundColor: '#fff',
-    marginHorizontal: 20,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  pLetter: { fontSize: 36, fontFamily: 'Poppins_800ExtraBold', color: ACCENT, lineHeight: 42 },
+  pRunner: { position: 'absolute', bottom: 7, right: 7 },
+
+  // Brand
+  brandRow: { fontSize: 28, marginBottom: 6 },
+  brandPlay:    { fontFamily: 'Poppins_800ExtraBold', color: '#fff' },
+  brandConnect: { fontFamily: 'Poppins_800ExtraBold', color: YELLOW },
+
+  // Tagline
+  tagline: {
+    fontSize: 10.5,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  taglineAccent: { color: YELLOW, fontFamily: 'Poppins_700Bold' },
+
+  // ── Card ─────────────────────────────────────────────────────────────────
+  scrollContent: { flexGrow: 1, paddingBottom: 40 },
+  card: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
     marginTop: 20,
-    borderRadius: 20,
-    padding: 28,
+    borderRadius: 24,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowOpacity: 0.09,
+    shadowRadius: 16,
     elevation: 8,
   },
-  welcomeSection: { alignItems: 'center', marginBottom: 32 },
-  welcomeTitle: { fontSize: 26, fontFamily: 'Poppins_700Bold', color: '#1a1a1a' },
-  welcomeSubtitle: { fontSize: 13, color: '#666', marginTop: 6, textAlign: 'center' },
-  formSection: { marginBottom: 20 },
-  inputContainer: {
+
+  // Welcome
+  welcomeTitle: {
+    fontSize: 24,
+    fontFamily: 'Poppins_700Bold',
+    color: '#111',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  welcomeAccent: { color: ACCENT },
+  welcomeSub: { fontSize: 13, color: '#888', textAlign: 'center', marginBottom: 22 },
+
+  // Inputs
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 14,
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    backgroundColor: '#fafafa',
+    minHeight: 54,
   },
-  inputIcon: { paddingLeft: 16 },
-  input: { flex: 1, paddingVertical: 16, paddingHorizontal: 12, fontSize: 16, color: '#333', fontFamily: 'Poppins_400Regular' },
-  eyeIcon: { paddingRight: 18 },
-  loginButton: { borderRadius: 16, overflow: 'hidden', marginTop: 8 },
-  gradient: { paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  loginButtonText: { color: '#fff', fontSize: 17, fontFamily: 'Poppins_700Bold', lineHeight: 20 },
-  featuresSection: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingTop: 20, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  featureItem: { flexDirection: 'row', alignItems: 'center', width: '48%', marginBottom: 14 },
-  featureIconBg: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 10, backgroundColor: ACCENT + '15' },
-  featureText: { fontSize: 13, color: '#555', fontFamily: 'Poppins_500Medium' },
-  signUpSection: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
-  signUpText: { fontSize: 15, color: '#666' },
-  signUpLink: { fontSize: 15, fontFamily: 'Poppins_700Bold', color: ACCENT },
+  inputIconLeft: { marginRight: 10 },
+  inputField: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#333' },
+  eyeBtn: { padding: 4 },
+
+  // Forgot
+  forgotRow: { alignItems: 'flex-end', marginBottom: 18 },
+  forgotText: { color: ACCENT, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+
+  // Login button
+  loginBtn: { borderRadius: 14, overflow: 'hidden', marginBottom: 22 },
+  loginGradient: {
+    paddingVertical: 15,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  loginBtnText: { color: '#fff', fontSize: 17, fontFamily: 'Poppins_700Bold' },
+
+  // OR divider
+  orRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  orLine: { flex: 1, height: 1, backgroundColor: '#ececec' },
+  orLabel: { fontSize: 11, color: '#bbb', marginHorizontal: 10, letterSpacing: 1, fontFamily: 'Poppins_500Medium' },
+
+  // Google button (full-width)
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 12,
+    paddingVertical: 13,
+    backgroundColor: '#fff',
+    marginBottom: 12,
+  },
+  googleBtnText: { fontSize: 14, color: '#333', fontFamily: 'Poppins_500Medium' },
+
+  // OTP button
+  otpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    borderRadius: 12,
+    paddingVertical: 13,
+    marginBottom: 22,
+    backgroundColor: '#fff',
+  },
+  otpBtnText: { fontSize: 14, color: '#333', fontFamily: 'Poppins_500Medium' },
+
+  // Features
+  featuresRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  featureItem: { alignItems: 'center', flex: 1 },
+  featureLabel: { fontSize: 10.5, color: '#666', textAlign: 'center', marginTop: 5 },
+
+  // Sign up
+  signupRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 22 },
+  signupText: { fontSize: 14, color: '#666' },
+  signupLink: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: ACCENT },
 })
