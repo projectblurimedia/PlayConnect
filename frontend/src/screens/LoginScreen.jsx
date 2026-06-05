@@ -24,14 +24,13 @@ import { loginUser, googleAuth } from '../services/api'
 
 WebBrowser.maybeCompleteAuthSession()
 
-// ── Set your Google Cloud OAuth 2.0 client IDs here ───────────────────────────
-// Get them from: https://console.cloud.google.com → APIs & Services → Credentials
+// ── Replace with your Google Cloud OAuth 2.0 client IDs ──────────────────────
 const GOOGLE_WEB_CLIENT_ID     = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com'
 const GOOGLE_IOS_CLIENT_ID     = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com'
 const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com'
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ACCENT  = '#C8102E'
+const ACCENT   = '#C8102E'
 const SCREEN_H = Dimensions.get('window').height
 
 function Text({ style, ...props }) {
@@ -51,7 +50,7 @@ export default function LoginScreen() {
   const [loading,       setLoading]       = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  // ── Google OAuth ────────────────────────────────────────────────────────
+  // ── Google OAuth ─────────────────────────────────────────────────────────
   const [, response, promptAsync] = Google.useAuthRequest({
     webClientId:     GOOGLE_WEB_CLIENT_ID,
     iosClientId:     GOOGLE_IOS_CLIENT_ID,
@@ -81,7 +80,7 @@ export default function LoginScreen() {
       } else if (result.needsRegistration) {
         Alert.alert(
           'Account Not Found',
-          `No PlayConnect account is linked to ${result.googleInfo?.email}.\n\nPlease register first.`,
+          `No PlayConnect account linked to ${result.googleInfo?.email}.\n\nPlease register first.`,
           [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Register', onPress: () => router.replace('/register') },
@@ -100,8 +99,8 @@ export default function LoginScreen() {
   const handleGooglePress = () => {
     if (GOOGLE_WEB_CLIENT_ID.startsWith('YOUR_')) {
       Alert.alert(
-        'Google Sign-In Setup Required',
-        'To enable Google Sign-In:\n\n1. Go to console.cloud.google.com\n2. Create OAuth 2.0 credentials\n3. Replace the placeholder IDs at the top of LoginScreen.jsx',
+        'Setup Required',
+        '1. Go to console.cloud.google.com\n2. Create OAuth 2.0 credentials\n3. Replace the placeholder IDs at the top of LoginScreen.jsx',
       )
       return
     }
@@ -109,7 +108,7 @@ export default function LoginScreen() {
     promptAsync()
   }
 
-  // ── Email / Password login ──────────────────────────────────────────────
+  // ── Email / Password login ───────────────────────────────────────────────
   const handleLogin = async () => {
     if (!identifier.trim() || !password) {
       Alert.alert('Error', 'Please enter your email/phone and password')
@@ -125,7 +124,7 @@ export default function LoginScreen() {
         Alert.alert('Login Failed', result.error || 'Invalid credentials')
       }
     } catch {
-      Alert.alert('Connection Error', 'Could not connect to the server. Please try again.')
+      Alert.alert('Connection Error', 'Could not connect to the server.')
     } finally {
       setLoading(false)
     }
@@ -135,22 +134,22 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#efefef" />
 
-      {/* ── Full-height side blobs — behind everything ── */}
+      {/* Full-height side blobs */}
       <View style={styles.blobLeft} />
       <View style={styles.blobRight} />
 
-      {/* ── Faint sport icon decoration ── */}
+      {/* Faint sport icons */}
       <View style={styles.iconsRow} pointerEvents="none">
         {['🏏', '⚽', '🏀', '🏸'].map((icon, i) => (
           <RNText key={i} style={styles.sportIcon}>{icon}</RNText>
         ))}
       </View>
 
-      {/* ── Logo section ── */}
+      {/* Logo section */}
       <View style={styles.logoSection}>
         <View style={styles.pBadge}>
           <Text style={styles.pLetter}>P</Text>
-          <Ionicons name="walk" size={12} color="#fff" style={styles.pRunner} />
+          <Ionicons name="walk" size={11} color="#fff" style={styles.pRunner} />
         </View>
         <Text style={styles.brandRow}>
           <Text style={styles.brandPlay}>PLAY</Text>
@@ -162,11 +161,8 @@ export default function LoginScreen() {
         </Text>
       </View>
 
-      {/* ── Card + footer ── */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.kav}
-      >
+      {/* Card */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.kav}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -180,9 +176,9 @@ export default function LoginScreen() {
             </Text>
             <Text style={styles.welcomeSub}>Login to continue your journey</Text>
 
-            {/* Email / Phone */}
+            {/* Email */}
             <View style={styles.inputRow}>
-              <Ionicons name="mail-outline" size={20} color={ACCENT} style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={18} color={ACCENT} style={styles.inputIcon} />
               <TextInput
                 style={styles.inputField}
                 placeholder="Email or Phone Number"
@@ -197,7 +193,7 @@ export default function LoginScreen() {
 
             {/* Password */}
             <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={20} color={ACCENT} style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={18} color={ACCENT} style={styles.inputIcon} />
               <TextInput
                 style={styles.inputField}
                 placeholder="Password"
@@ -207,52 +203,47 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity onPress={() => setShowPassword(p => !p)} style={styles.eyeBtn}>
-                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={22} color="#bbb" />
+                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#bbb" />
               </TouchableOpacity>
             </View>
 
-            {/* Forgot password */}
+            {/* Forgot */}
             <TouchableOpacity style={styles.forgotRow} onPress={() => router.push('/(auth)/forgot-password')}>
               <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            {/* Login button */}
+            {/* Login */}
             <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
               <LinearGradient colors={[ACCENT, '#a00d24']} style={styles.loginGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 {loading
                   ? <ActivityIndicator size="small" color="#fff" />
-                  : <><Text style={styles.loginBtnText}>Login</Text><Ionicons name="arrow-forward" size={20} color="#fff" /></>
+                  : <><Text style={styles.loginBtnText}>Login</Text><Ionicons name="arrow-forward" size={18} color="#fff" /></>
                 }
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* OR divider */}
+            {/* OR */}
             <View style={styles.orRow}>
               <View style={styles.orLine} />
               <Text style={styles.orLabel}>OR CONTINUE WITH</Text>
               <View style={styles.orLine} />
             </View>
 
-            {/* Google — always enabled; shows setup alert if IDs not configured */}
-            <TouchableOpacity
-              style={styles.googleBtn}
-              onPress={handleGooglePress}
-              disabled={googleLoading}
-              activeOpacity={0.8}
-            >
+            {/* Google */}
+            <TouchableOpacity style={styles.googleBtn} onPress={handleGooglePress} disabled={googleLoading} activeOpacity={0.8}>
               {googleLoading
                 ? <ActivityIndicator size="small" color="#EA4335" />
-                : <><AntDesign name="google" size={20} color="#EA4335" /><Text style={styles.googleBtnText}>Continue with Google</Text></>
+                : <><AntDesign name="google" size={18} color="#EA4335" /><Text style={styles.googleBtnText}>Continue with Google</Text></>
               }
             </TouchableOpacity>
 
             {/* OTP */}
             <TouchableOpacity style={styles.otpBtn} onPress={() => router.push('/(auth)/otp-login')} activeOpacity={0.8}>
-              <Ionicons name="call-outline" size={20} color={ACCENT} />
+              <Ionicons name="call-outline" size={18} color={ACCENT} />
               <Text style={styles.otpBtnText}>Login with OTP</Text>
             </TouchableOpacity>
 
-            {/* Feature strip */}
+            {/* Features */}
             <View style={styles.featuresRow}>
               {[
                 { icon: 'shield-checkmark-outline', label: 'Secure Login' },
@@ -260,19 +251,20 @@ export default function LoginScreen() {
                 { icon: 'trophy-outline',           label: 'Play. Connect. Win.' },
               ].map((f) => (
                 <View key={f.label} style={styles.featureItem}>
-                  <Ionicons name={f.icon} size={22} color={ACCENT} />
+                  <Ionicons name={f.icon} size={20} color={ACCENT} />
                   <Text style={styles.featureLabel}>{f.label}</Text>
                 </View>
               ))}
             </View>
-          </View>
 
-          {/* Sign-up footer */}
-          <View style={styles.signupRow}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.replace('/register')}>
-              <Text style={styles.signupLink}>Sign Up</Text>
-            </TouchableOpacity>
+            {/* Sign up — inside card to avoid extra scroll space */}
+            <View style={styles.signupRow}>
+              <Text style={styles.signupText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => router.replace('/register')}>
+                <Text style={styles.signupLink}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -281,19 +273,15 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ── Root container ─────────────────────────────────────────────────────
-  container: {
-    flex: 1,
-    backgroundColor: '#efefef',
-  },
+  container: { flex: 1, backgroundColor: '#efefef' },
 
-  // ── Full-height blobs — sit behind every other layer ──────────────────
+  // Full-height blobs
   blobLeft: {
     position: 'absolute',
     left: -85,
     top: -60,
-    width: 190,
-    height: SCREEN_H + 120,    // taller than screen so they never end
+    width: 160,
+    height: SCREEN_H + 120,
     backgroundColor: ACCENT,
     borderRadius: 95,
     zIndex: 1,
@@ -304,7 +292,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -85,
     top: -60,
-    width: 190,
+    width: 170,
     height: SCREEN_H + 120,
     backgroundColor: ACCENT,
     borderRadius: 95,
@@ -313,134 +301,158 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
 
-  // ── Faint sport icons ─────────────────────────────────────────────────
+  // Sport icons
   iconsRow: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 44,
-    left: 0,
-    right: 0,
+    top: Platform.OS === 'ios' ? 52 : 36,
+    left: 0, right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 28,
+    gap: 24,
     opacity: 0.1,
     zIndex: 2,
   },
-  sportIcon: { fontSize: 26 },
+  sportIcon: { fontSize: 22 },
 
-  // ── Logo section ───────────────────────────────────────────────────────
+  // Logo section — compact
   logoSection: {
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 58 : 42,
-    paddingBottom: 24,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 8,
     zIndex: 10,
     elevation: 10,
   },
   pBadge: {
-    width: 56,
-    height: 56,
+    width: 50,
+    height: 50,
     backgroundColor: ACCENT,
-    borderRadius: 14,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.22,
     shadowRadius: 6,
     elevation: 12,
   },
-  pLetter: { fontSize: 36, fontFamily: 'Poppins_800ExtraBold', color: '#fff', lineHeight: 42 },
-  pRunner: { position: 'absolute', bottom: 7, right: 7 },
-  brandRow: { fontSize: 28, marginBottom: 6 },
-  brandPlay:     { fontFamily: 'Poppins_800ExtraBold', color: '#111' },
-  brandConnect:  { fontFamily: 'Poppins_800ExtraBold', color: ACCENT },
+  pLetter: { fontSize: 32, fontFamily: 'Poppins_800ExtraBold', color: '#fff', lineHeight: 38 },
+  pRunner: { position: 'absolute', bottom: 6, right: 6 },
+  brandRow: { fontSize: 26, marginBottom: 4 },
+  brandPlay:    { fontFamily: 'Poppins_800ExtraBold', color: '#111' },
+  brandConnect: { fontFamily: 'Poppins_800ExtraBold', color: ACCENT },
   tagline: {
-    fontSize: 10.5,
+    fontSize: 10,
     color: '#444',
-    letterSpacing: 1.4,
+    letterSpacing: 1.3,
     textTransform: 'uppercase',
     textAlign: 'center',
-    lineHeight: 17,
+    lineHeight: 15,
   },
   taglineAccent: { color: ACCENT, fontFamily: 'Poppins_700Bold' },
 
-  // ── Scrollable area ────────────────────────────────────────────────────
+  // Card
   kav: { flex: 1, zIndex: 10 },
-  scrollContent: { flexGrow: 1, paddingBottom: 40 },
-
-  // ── Card — elevated above blobs ────────────────────────────────────────
+  scrollContent: { flexGrow: 1, paddingBottom: 12 },
   card: {
     backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 4,
-    borderRadius: 24,
-    padding: 24,
+    marginHorizontal: 14,
+    marginTop: 6,
+    borderRadius: 22,
+    padding: 18,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.13,
-    shadowRadius: 20,
+    shadowRadius: 18,
     elevation: 20,
     zIndex: 20,
   },
 
-  // Welcome
-  welcomeTitle: { fontSize: 24, fontFamily: 'Poppins_700Bold', color: '#111', textAlign: 'center', marginBottom: 4 },
+  // Welcome — reduced gap between title and subtitle
+  welcomeTitle: {
+    fontSize: 22,
+    fontFamily: 'Poppins_700Bold',
+    color: '#111',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 1,
+  },
   welcomeAccent: { color: ACCENT },
-  welcomeSub: { fontSize: 13, color: '#888', textAlign: 'center', marginBottom: 22 },
+  welcomeSub: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 12,
+  },
 
-  // Inputs
+  // Inputs — tighter
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#e8e8e8',
-    borderRadius: 14,
-    marginBottom: 14,
-    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    paddingHorizontal: 12,
     backgroundColor: '#fafafa',
-    minHeight: 54,
+    minHeight: 48,
   },
-  inputIcon: { marginRight: 10 },
-  inputField: { flex: 1, paddingVertical: 14, fontSize: 15, color: '#333' },
+  inputIcon: { marginRight: 8 },
+  inputField: { flex: 1, paddingVertical: 11, fontSize: 14, color: '#333' },
   eyeBtn: { padding: 4 },
 
-  // Forgot
-  forgotRow: { alignItems: 'flex-end', marginBottom: 18 },
-  forgotText: { color: ACCENT, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  forgotRow: { alignItems: 'flex-end', marginBottom: 10 },
+  forgotText: { color: ACCENT, fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
 
-  // Login button
-  loginBtn: { borderRadius: 14, overflow: 'hidden', marginBottom: 22 },
-  loginGradient: { paddingVertical: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  loginBtnText: { color: '#fff', fontSize: 17, fontFamily: 'Poppins_700Bold' },
+  loginBtn: { borderRadius: 12, overflow: 'hidden', marginBottom: 14 },
+  loginGradient: {
+    paddingVertical: 13,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loginBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Poppins_700Bold' },
 
-  // OR divider
-  orRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  orRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   orLine: { flex: 1, height: 1, backgroundColor: '#ececec' },
-  orLabel: { fontSize: 11, color: '#bbb', marginHorizontal: 10, letterSpacing: 1, fontFamily: 'Poppins_500Medium' },
+  orLabel: { fontSize: 10, color: '#bbb', marginHorizontal: 8, letterSpacing: 0.8, fontFamily: 'Poppins_500Medium' },
 
-  // Google
   googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 12, paddingVertical: 13,
-    backgroundColor: '#fff', marginBottom: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 11, paddingVertical: 11,
+    backgroundColor: '#fff', marginBottom: 8,
   },
-  googleBtnText: { fontSize: 14, color: '#333', fontFamily: 'Poppins_500Medium' },
+  googleBtnText: { fontSize: 13, color: '#333', fontFamily: 'Poppins_500Medium' },
 
-  // OTP
   otpBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 12, paddingVertical: 13,
-    marginBottom: 22, backgroundColor: '#fff',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1.5, borderColor: '#e8e8e8', borderRadius: 11, paddingVertical: 11,
+    marginBottom: 14, backgroundColor: '#fff',
   },
-  otpBtnText: { fontSize: 14, color: '#333', fontFamily: 'Poppins_500Medium' },
+  otpBtnText: { fontSize: 13, color: '#333', fontFamily: 'Poppins_500Medium' },
 
-  // Features
-  featuresRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 18, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  featuresRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    marginBottom: 14,
+  },
   featureItem: { alignItems: 'center', flex: 1 },
-  featureLabel: { fontSize: 10.5, color: '#666', textAlign: 'center', marginTop: 5 },
+  featureLabel: { fontSize: 9.5, color: '#666', textAlign: 'center', marginTop: 4 },
 
-  // Sign up
-  signupRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 22 },
-  signupText: { fontSize: 14, color: '#666' },
-  signupLink: { fontSize: 14, fontFamily: 'Poppins_700Bold', color: ACCENT },
+  // Sign up row — inside card
+  signupRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f5f5f5',
+  },
+  signupText: { fontSize: 13, color: '#666' },
+  signupLink: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: ACCENT },
 })

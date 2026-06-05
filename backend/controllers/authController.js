@@ -28,6 +28,45 @@ function maskPhone(phone) {
   return d.slice(0, -4).replace(/\d/g, '*') + d.slice(-4)
 }
 
+// ─── MSG91 SMS sender ─────────────────────────────────────────────────────────
+// Sign up at msg91.com, create an OTP template, then add to .env:
+//   MSG91_API_KEY=<your key>
+//   MSG91_TEMPLATE_ID=<your OTP template ID>
+async function sendSMS(phone, otp) {
+  const apiKey     = process.env.MSG91_API_KEY
+  const templateId = process.env.MSG91_TEMPLATE_ID
+
+  if (!apiKey || !templateId || apiKey === 'YOUR_MSG91_API_KEY') {
+    // No SMS credentials — print OTP to backend console for local testing
+    console.log(`\n📱 [DEV] OTP for +91${phone} → ${otp}  (Add MSG91_API_KEY + MSG91_TEMPLATE_ID to .env for real SMS)\n`)
+    return
+  }
+
+  try {
+    const res = await fetch('https://control.msg91.com/api/v5/otp', {
+      method: 'POST',
+      headers: {
+        authkey: apiKey,
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        template_id: templateId,
+        mobile: `91${phone}`,
+        otp,
+        authkey: apiKey,
+      }),
+    })
+    const data = await res.json()
+    if (data.type !== 'success') {
+      console.error('MSG91 error:', JSON.stringify(data))
+    }
+  } catch (err) {
+    console.error('SMS send failed:', err.message)
+    // OTP still stored in memory — user can retry
+  }
+}
+
 // ─── Existing endpoints ───────────────────────────────────────────────────────
 
 export const checkUsername = async (req, res) => {
@@ -180,13 +219,9 @@ export const sendOTP = async (req, res) => {
     const otp = generateOTP()
     otpStore.set(digits, { otp, expiresAt: Date.now() + 5 * 60 * 1000 })
 
-    // TODO: replace with Twilio / MSG91 SMS delivery in production
-    const isDev = process.env.NODE_ENV !== 'production'
-    res.json({
-      success: true,
-      maskedPhone: maskPhone(digits),
-      ...(isDev && { devOtp: otp }),
-    })
+    await sendSMS(digits, otp)
+
+    res.json({ success: true, maskedPhone: maskPhone(digits) })
   } catch (err) {
     console.error('sendOTP error:', err)
     res.status(500).json({ error: 'Failed to send OTP' })
@@ -240,12 +275,9 @@ export const forgotPasswordSendOTP = async (req, res) => {
     const otp = generateOTP()
     otpStore.set(`reset_${digits}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 })
 
-    const isDev = process.env.NODE_ENV !== 'production'
-    res.json({
-      success: true,
-      maskedPhone: maskPhone(digits),
-      ...(isDev && { devOtp: otp }),
-    })
+    await sendSMS(digits, otp)
+
+    res.json({ success: true, maskedPhone: maskPhone(digits) })
   } catch (err) {
     console.error('forgotPasswordSendOTP error:', err)
     res.status(500).json({ error: 'Failed to process request' })
