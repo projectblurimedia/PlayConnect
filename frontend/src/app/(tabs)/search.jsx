@@ -95,7 +95,7 @@ export default function SearchScreen() {
             style={[styles.tab, active === cat && styles.tabActive, { borderColor: isDark ? '#2a2a2a' : '#e5e5e5' }]}
             onPress={() => handleTabChange(cat)}
           >
-            <Text style={[styles.tabText, active === cat && styles.tabTextActive, { color: active === cat ? '#fff' : mutedColor }]}>{cat}</Text>
+            <Text style={[styles.tabText, active === cat && styles.tabTextActive, { color: active === cat ? '#fff' : mutedColor, marginBottom: -3 }]}>{cat}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     margin: 14, marginBottom: 10, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8,
     gap: 8, borderWidth: 1.5,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
   input: { flex: 1, fontSize: 14, fontFamily: 'Poppins_400Regular', paddingVertical: 4 },
   tabsRow: { flexDirection: 'row', paddingHorizontal: 14, gap: 10, marginBottom: 10 },

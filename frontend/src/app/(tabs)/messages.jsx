@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 1,
   },
   searchIcon: { marginRight: 8 },
   searchInput: {
@@ -349,5 +349,5 @@ const styles = StyleSheet.create({
     backgroundColor: ACCENT,
     borderRadius: 22,
   },
-  emptyBtnText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  emptyBtnText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13, marginBottom: -2 },
 })
