@@ -192,3 +192,50 @@ export const markAllNotificationsRead = async () => {
   const res = await api.put('/api/notifications/read-all')
   return res.data
 }
+
+// ─── Teams ───────────────────────────────────────────────────────────────────
+
+export const createTeam = async (payload) => {
+  const res = await api.post('/api/teams', payload)
+  return res.data
+}
+
+export const joinTeam = async (inviteCode) => {
+  const res = await api.post('/api/teams/join', { inviteCode })
+  return res.data
+}
+
+export const getMyTeams = async () => {
+  const res = await api.get('/api/teams')
+  return res.data
+}
+
+export const getTeamDetail = async (teamId) => {
+  const res = await api.get(`/api/teams/${teamId}`)
+  return res.data
+}
+
+export const assignTeamRole = async (teamId, userId, role) => {
+  const res = await api.put(`/api/teams/${teamId}/assign-role`, { userId, role })
+  return res.data
+}
+
+export const removeTeamMember = async (teamId, userId) => {
+  const res = await api.delete(`/api/teams/${teamId}/members/${userId}`)
+  return res.data
+}
+
+export const leaveTeam = async (teamId) => {
+  const res = await api.post(`/api/teams/${teamId}/leave`)
+  return res.data
+}
+
+export const deleteTeam = async (teamId) => {
+  const res = await api.delete(`/api/teams/${teamId}`)
+  return res.data
+}
+
+export const searchTeams = async (q) => {
+  const res = await api.get(`/api/teams/search?q=${encodeURIComponent(q)}`)
+  return res.data
+}

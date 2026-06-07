@@ -80,6 +80,12 @@ const MENU_ITEMS = [
   { icon: 'location-outline', label: 'Register Venue', route: '/register-venue' },
 ]
 
+const TEAM_MENU_ITEMS = [
+  { icon: 'people-outline', label: 'My Teams', route: '/teams' },
+  { icon: 'add-circle-outline', label: 'Create Team', route: '/create-team' },
+  { icon: 'qr-code-outline', label: 'Join Team', route: '/join-team' },
+]
+
 function Sidebar({ visible, onClose }) {
   const dispatch = useDispatch()
   const router = useRouter()
@@ -142,6 +148,18 @@ function Sidebar({ visible, onClose }) {
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {MENU_ITEMS.map(item => (
+            <TouchableOpacity key={item.label} style={styles.sidebarItem} onPress={() => navigate(item.route)}>
+              <View style={styles.sidebarItemLeft}>
+                <Ionicons name={item.icon} size={22} color={isDark ? '#fff' : '#333'} />
+                <Text style={[styles.sidebarItemText, { color: isDark ? '#fff' : '#333' }]}>{item.label}</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={mutedColor} />
+            </TouchableOpacity>
+          ))}
+
+          <View style={[styles.sidebarDivider, { backgroundColor: dividerColor }]} />
+          <Text style={[styles.sidebarSectionLabel, { color: mutedColor }]}>TEAMS</Text>
+          {TEAM_MENU_ITEMS.map(item => (
             <TouchableOpacity key={item.label} style={styles.sidebarItem} onPress={() => navigate(item.route)}>
               <View style={styles.sidebarItemLeft}>
                 <Ionicons name={item.icon} size={22} color={isDark ? '#fff' : '#333'} />
@@ -330,6 +348,7 @@ const styles = StyleSheet.create({
   sidebarName: { fontSize: 16, fontFamily: 'Poppins_700Bold' },
   sidebarHandle: { fontSize: 13, marginTop: 2 },
   sidebarDivider: { height: 1, marginVertical: 12 },
+  sidebarSectionLabel: { fontSize: 10, fontFamily: 'Poppins_600SemiBold', letterSpacing: 1.2, marginBottom: 4 },
   sidebarItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
   sidebarItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sidebarItemText: { fontSize: 15, fontFamily: 'Poppins_600SemiBold' },

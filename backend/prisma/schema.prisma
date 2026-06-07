@@ -60,6 +60,16 @@ enum NotificationType {
   CONNECTION_REQUEST
   CONNECTION_ACCEPTED
   MESSAGE
+  TEAM_INVITE
+  TEAM_ROLE_ASSIGNED
+}
+
+enum TeamRole {
+  ADMIN
+  CAPTAIN
+  VICE_CAPTAIN
+  WICKET_KEEPER
+  PLAYER
 }
 
 // ─────────────────────────────────────────────
@@ -109,6 +119,8 @@ model User {
   receivedConnections Connection[] @relation("ConnectionReceiver")
   notifications       Notification[] @relation("NotificationUser")
   notificationsFrom   Notification[] @relation("NotificationFrom")
+  createdTeams        Team[]         @relation("TeamCreator")
+  teamMemberships     TeamMember[]
 
   @@index([username])
   @@index([phone])
@@ -298,4 +310,41 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// TEAM
+// ─────────────────────────────────────────────
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  sport       String       @default("CRICKET")
+  description String?
+  logoUrl     String?
+  inviteCode  String       @unique
+  maxPlayers  Int          @default(11)
+  createdBy   String
+  creator     User         @relation("TeamCreator", fields: [createdBy], references: [id])
+  members     TeamMember[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([inviteCode])
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     TeamRole @default(PLAYER)
+  joinedAt DateTime @default(now())
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("team_members")
 }

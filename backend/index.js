@@ -13,6 +13,7 @@ import searchRoutes from './routes/searchRoutes.js'
 import connectionRoutes from './routes/connectionRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import messageRoutes from './routes/messageRoutes.js'
+import teamRoutes from './routes/teamRoutes.js'
 
 dotenv.config()
 const app = express()
@@ -30,6 +31,7 @@ app.use('/api/search', searchRoutes)
 app.use('/api/connections', connectionRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/messages', messageRoutes)
+app.use('/api/teams', teamRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 

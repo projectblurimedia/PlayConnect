@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useSelector } from 'react-redux'
 import { useRouter } from 'expo-router'
-import { searchPlayers, searchGrounds } from '../../services/api'
+import { searchPlayers, searchGrounds, searchTeams } from '../../services/api'
 
 const ACCENT = '#C8102E'
 function Text(props) {
@@ -14,7 +14,16 @@ function Text(props) {
 }
 
 const SPORT_EMOJI = { CRICKET: '🏏', FOOTBALL: '⚽', BASKETBALL: '🏀', BADMINTON: '🏸', VOLLEYBALL: '🏐', KABADDI: '🤼', TENNIS: '🎾', OTHER: '🏃' }
-const CATEGORIES = ['Players', 'Venues']
+const CATEGORIES = ['Players', 'Venues', 'Teams']
+
+const ROLE_COLORS = {
+  ADMIN: '#C8102E', CAPTAIN: '#f59e0b', VICE_CAPTAIN: '#3b82f6',
+  WICKET_KEEPER: '#8b5cf6', PLAYER: '#6b7280',
+}
+const ROLE_LABELS = {
+  ADMIN: 'Admin', CAPTAIN: 'Captain', VICE_CAPTAIN: 'Vice-C',
+  WICKET_KEEPER: 'Keeper', PLAYER: 'Player',
+}
 
 export default function SearchScreen() {
   const theme = useSelector(state => state.user.theme)
@@ -28,11 +37,11 @@ export default function SearchScreen() {
   const [searched, setSearched] = useState(false)
   const debounceRef = useRef(null)
 
-  const bg = isDark ? '#111' : '#f8f9fa'
-  const cardBg = isDark ? '#1e1e1e' : '#fff'
-  const textColor = isDark ? '#fff' : '#333'
-  const mutedColor = isDark ? '#aaa' : '#888'
-  const inputBg = isDark ? '#1e1e1e' : '#fff'
+  const bg        = isDark ? '#111'    : '#f8f9fa'
+  const cardBg    = isDark ? '#1e1e1e' : '#fff'
+  const textColor = isDark ? '#fff'    : '#333'
+  const mutedColor= isDark ? '#aaa'    : '#888'
+  const inputBg   = isDark ? '#1e1e1e' : '#fff'
   const inputBorder = isDark ? '#2a2a2a' : '#e5e7eb'
 
   const runSearch = useCallback(async (q, category) => {
@@ -42,9 +51,12 @@ export default function SearchScreen() {
       if (category === 'Players') {
         const data = await searchPlayers(q)
         setResults(data.players || [])
-      } else {
+      } else if (category === 'Venues') {
         const data = await searchGrounds(q)
         setResults(data.grounds || [])
+      } else {
+        const data = await searchTeams(q)
+        setResults(data.teams || [])
       }
     } catch {
       setResults([])
@@ -62,6 +74,8 @@ export default function SearchScreen() {
 
   const handleTabChange = (cat) => {
     setActive(cat)
+    setResults([])
+    setSearched(false)
     if (query.trim().length >= 2) runSearch(query.trim(), cat)
   }
 
@@ -95,7 +109,7 @@ export default function SearchScreen() {
             style={[styles.tab, active === cat && styles.tabActive, { borderColor: isDark ? '#2a2a2a' : '#e5e5e5' }]}
             onPress={() => handleTabChange(cat)}
           >
-            <Text style={[styles.tabText, active === cat && styles.tabTextActive, { color: active === cat ? '#fff' : mutedColor, marginBottom: -3 }]}>{cat}</Text>
+            <Text style={[styles.tabText, active === cat && styles.tabTextActive, { color: active === cat ? '#fff' : mutedColor }]}>{cat}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -119,6 +133,7 @@ export default function SearchScreen() {
           </View>
         )}
 
+        {/* ── Players ── */}
         {!loading && active === 'Players' && results.map(p => {
           const initials = (p.fullName || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
           const sport = p.sports?.[0]
@@ -140,6 +155,7 @@ export default function SearchScreen() {
           )
         })}
 
+        {/* ── Venues ── */}
         {!loading && active === 'Venues' && results.map(g => (
           <TouchableOpacity key={g.id} style={[styles.groundRow, { backgroundColor: cardBg }]} activeOpacity={0.8}>
             {g.photos?.[0]
@@ -159,6 +175,46 @@ export default function SearchScreen() {
             </View>
           </TouchableOpacity>
         ))}
+
+        {/* ── Teams ── */}
+        {!loading && active === 'Teams' && results.map(t => {
+          const memberCount = t.members?.length || 0
+          const sport = t.sport || 'CRICKET'
+          return (
+            <TouchableOpacity
+              key={t.id}
+              style={[styles.teamRow, { backgroundColor: cardBg }]}
+              onPress={() => router.push(`/team/${t.id}`)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.teamIconBox}>
+                <Text style={styles.teamEmoji}>{SPORT_EMOJI[sport] || '🏃'}</Text>
+              </View>
+              <View style={styles.teamInfo}>
+                <Text style={[styles.teamName, { color: textColor }]}>{t.name}</Text>
+                <View style={styles.teamMetaRow}>
+                  <View style={[styles.teamSportBadge, { backgroundColor: ACCENT + '15' }]}>
+                    <Text style={[styles.teamSportText, { color: ACCENT }]}>{sport}</Text>
+                  </View>
+                  <Text style={[styles.teamMemberCount, { color: mutedColor }]}>
+                    <Ionicons name="people-outline" size={12} /> {memberCount}/{t.maxPlayers}
+                  </Text>
+                </View>
+                {/* Show top roles */}
+                <View style={styles.teamRolesRow}>
+                  {t.members?.filter(m => ['CAPTAIN','VICE_CAPTAIN','WICKET_KEEPER'].includes(m.role)).slice(0, 3).map(m => (
+                    <View key={m.userId} style={[styles.miniRoleBadge, { backgroundColor: ROLE_COLORS[m.role] + '20' }]}>
+                      <Text style={[styles.miniRoleText, { color: ROLE_COLORS[m.role] }]}>
+                        {ROLE_LABELS[m.role]}: {m.user?.fullName?.split(' ')[0]}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+            </TouchableOpacity>
+          )
+        })}
       </ScrollView>
     </View>
   )
@@ -174,7 +230,7 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontSize: 14, fontFamily: 'Poppins_400Regular', paddingVertical: 4 },
   tabsRow: { flexDirection: 'row', paddingHorizontal: 14, gap: 10, marginBottom: 10 },
-  tab: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
+  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
   tabActive: { backgroundColor: ACCENT, borderColor: ACCENT },
   tabText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
   tabTextActive: { color: '#fff' },
@@ -212,4 +268,25 @@ const styles = StyleSheet.create({
   groundPrice: { fontSize: 13, fontFamily: 'Poppins_700Bold', color: ACCENT },
   verifiedText: { fontSize: 11, color: '#22c55e', fontFamily: 'Poppins_500Medium' },
   groundSports: { fontSize: 14, marginTop: 3 },
+
+  // Team row
+  teamRow: {
+    flexDirection: 'row', alignItems: 'center', borderRadius: 14,
+    padding: 12, marginBottom: 10, gap: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+  },
+  teamIconBox: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: ACCENT + '12', justifyContent: 'center', alignItems: 'center',
+  },
+  teamEmoji: { fontSize: 26 },
+  teamInfo: { flex: 1 },
+  teamName: { fontSize: 15, fontFamily: 'Poppins_700Bold' },
+  teamMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
+  teamSportBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  teamSportText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
+  teamMemberCount: { fontSize: 12 },
+  teamRolesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 5 },
+  miniRoleBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  miniRoleText: { fontSize: 10, fontFamily: 'Poppins_600SemiBold' },
 })
