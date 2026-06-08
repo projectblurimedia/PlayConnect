@@ -77,13 +77,18 @@ const MENU_ITEMS = [
   { icon: 'add-circle-outline', label: 'Create Match', route: '/create-match' },
   { icon: 'enter-outline', label: 'Join Match', route: '/join-match' },
   { icon: 'trophy-outline', label: 'Tournaments', route: '/tournaments' },
-  { icon: 'location-outline', label: 'Register Venue', route: '/register-venue' },
 ]
 
 const TEAM_MENU_ITEMS = [
   { icon: 'people-outline', label: 'My Teams', route: '/teams' },
   { icon: 'add-circle-outline', label: 'Create Team', route: '/create-team' },
   { icon: 'qr-code-outline', label: 'Join Team', route: '/join-team' },
+]
+
+const VENUE_MENU_ITEMS = [
+  { icon: 'calendar-outline', label: 'My Bookings', route: '/my-bookings' },
+  { icon: 'business-outline', label: 'My Venues', route: '/my-venues' },
+  { icon: 'add-circle-outline', label: 'Register Venue', route: '/register-venue' },
 ]
 
 function Sidebar({ visible, onClose }) {
@@ -160,6 +165,18 @@ function Sidebar({ visible, onClose }) {
           <View style={[styles.sidebarDivider, { backgroundColor: dividerColor }]} />
           <Text style={[styles.sidebarSectionLabel, { color: mutedColor }]}>TEAMS</Text>
           {TEAM_MENU_ITEMS.map(item => (
+            <TouchableOpacity key={item.label} style={styles.sidebarItem} onPress={() => navigate(item.route)}>
+              <View style={styles.sidebarItemLeft}>
+                <Ionicons name={item.icon} size={22} color={isDark ? '#fff' : '#333'} />
+                <Text style={[styles.sidebarItemText, { color: isDark ? '#fff' : '#333' }]}>{item.label}</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={mutedColor} />
+            </TouchableOpacity>
+          ))}
+
+          <View style={[styles.sidebarDivider, { backgroundColor: dividerColor }]} />
+          <Text style={[styles.sidebarSectionLabel, { color: mutedColor }]}>VENUES</Text>
+          {VENUE_MENU_ITEMS.map(item => (
             <TouchableOpacity key={item.label} style={styles.sidebarItem} onPress={() => navigate(item.route)}>
               <View style={styles.sidebarItemLeft}>
                 <Ionicons name={item.icon} size={22} color={isDark ? '#fff' : '#333'} />

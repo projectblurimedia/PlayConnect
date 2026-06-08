@@ -242,7 +242,7 @@ export default function HomeScreen() {
             </View>
           )
           : grounds.map(g => (
-            <GroundCard key={g.id} ground={g} isDark={isDark} onPress={() => {}} />
+            <GroundCard key={g.id} ground={g} isDark={isDark} onPress={() => router.push(`/ground/${g.id}`)} />
           ))
       }
     </ScrollView>

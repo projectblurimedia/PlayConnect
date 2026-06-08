@@ -157,7 +157,7 @@ export default function SearchScreen() {
 
         {/* ── Venues ── */}
         {!loading && active === 'Venues' && results.map(g => (
-          <TouchableOpacity key={g.id} style={[styles.groundRow, { backgroundColor: cardBg }]} activeOpacity={0.8}>
+          <TouchableOpacity key={g.id} style={[styles.groundRow, { backgroundColor: cardBg }]} onPress={() => router.push(`/ground/${g.id}`)} activeOpacity={0.8}>
             {g.photos?.[0]
               ? <Image source={{ uri: g.photos[0] }} style={styles.groundThumb} />
               : <View style={[styles.groundThumbFallback, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>

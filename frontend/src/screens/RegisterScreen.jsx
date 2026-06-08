@@ -753,7 +753,7 @@ function StepReview({ profileData, selectedSports, sportData, onBack, onSubmit, 
               : <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
             }
             <Text style={styles.submitButtonText}>
-              {isSubmitting ? 'Creating Account...' : 'Create Account'}
+              {isSubmitting ? 'Creating...' : 'Create'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

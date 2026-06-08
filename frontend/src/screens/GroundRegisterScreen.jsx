@@ -19,7 +19,7 @@ import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
 import { useRouter } from 'expo-router'
-import { registerGround as registerGroundAPI } from '../services/api'
+import { registerGround as registerGroundAPI, uploadGroundPhoto } from '../services/api'
 
 const ACCENT = '#C8102E'
 
@@ -547,9 +547,14 @@ function StepPricing({ data, onChange, onNext, onBack }) {
 }
 
 // ─── Step 5: Photos ───────────────────────────────────────────────────────────
+// Each entry in `photos` is either:
+//   { id, localUri, uploading: true }            — in-flight
+//   { id, localUri, url: <cloudinary_url> }      — done
+//   { id, localUri, error: true }                — failed
 
 function StepPhotos({ data, onChange, onNext, onBack }) {
   const photos = data.photos || []
+  const anyUploading = photos.some((p) => p?.uploading)
 
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -558,19 +563,60 @@ function StepPhotos({ data, onChange, onNext, onBack }) {
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaType.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      quality: 0.85,
+      quality: 0.7,
+      base64: true,
       selectionLimit: 8 - photos.length,
     })
-    if (!result.canceled) {
-      const newUris = result.assets.map((a) => a.uri)
-      onChange('photos', [...photos, ...newUris].slice(0, 8))
+    if (result.canceled) return
+
+    // Add placeholder entries immediately so the user sees their picks
+    const newEntries = result.assets.map((a) => ({
+      id: `${Date.now()}_${Math.random()}`,
+      localUri: a.uri,
+      uploading: true,
+    }))
+    const merged = [...photos, ...newEntries].slice(0, 8)
+    onChange('photos', merged)
+
+    // Upload each in parallel
+    for (const asset of result.assets.slice(0, 8 - photos.length)) {
+      const entry = newEntries.find((e) => e.localUri === asset.uri)
+      if (!entry) continue
+      try {
+        const mimeType = asset.mimeType || 'image/jpeg'
+        const res = await uploadGroundPhoto(asset.base64, mimeType)
+        onChange('photos', (prev) =>
+          (prev || []).map((p) =>
+            p?.id === entry.id ? { ...p, uploading: false, url: res.url } : p
+          )
+        )
+      } catch {
+        onChange('photos', (prev) =>
+          (prev || []).map((p) =>
+            p?.id === entry.id ? { ...p, uploading: false, error: true } : p
+          )
+        )
+      }
     }
   }
 
-  const removePhoto = (uri) =>
-    onChange('photos', photos.filter((u) => u !== uri))
+  const removePhoto = (id) =>
+    onChange('photos', (photos || []).filter((p) => p?.id !== id))
+
+  const handleNext = () => {
+    if (anyUploading) {
+      Alert.alert('Please wait', 'Photos are still uploading…')
+      return
+    }
+    const failed = photos.filter((p) => p?.error)
+    if (failed.length > 0) {
+      Alert.alert('Upload failed', `${failed.length} photo(s) failed to upload. Remove them and try again.`)
+      return
+    }
+    onNext()
+  }
 
   return (
     <View>
@@ -581,41 +627,59 @@ function StepPhotos({ data, onChange, onNext, onBack }) {
       <Text style={styles.sectionHint}>Up to 8 photos — first photo becomes the cover</Text>
 
       <TouchableOpacity
-        style={[styles.photoPickerBtn, photos.length >= 8 && styles.photoPickerDisabled]}
-        onPress={photos.length < 8 ? pickImages : undefined}
-        activeOpacity={photos.length >= 8 ? 1 : 0.7}
+        style={[styles.photoPickerBtn, (photos.length >= 8 || anyUploading) && styles.photoPickerDisabled]}
+        onPress={photos.length < 8 && !anyUploading ? pickImages : undefined}
+        activeOpacity={photos.length >= 8 || anyUploading ? 1 : 0.7}
       >
         <View style={styles.photoPickerIconWrap}>
           <Ionicons name="camera-outline" size={26} color={ACCENT} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.photoPickerTitle}>
-            {photos.length === 0 ? 'Choose from Gallery' : 'Add More Photos'}
+            {anyUploading ? 'Uploading photos…' : photos.length === 0 ? 'Choose from Gallery' : 'Add More Photos'}
           </Text>
           <Text style={styles.photoPickerSub}>
             {photos.length >= 8 ? 'Maximum 8 photos reached' : `${photos.length}/8 photos added`}
           </Text>
         </View>
-        {photos.length < 8 && (
-          <Ionicons name="chevron-forward-outline" size={18} color="#bbb" />
-        )}
+        {anyUploading
+          ? <ActivityIndicator size="small" color={ACCENT} />
+          : photos.length < 8 && <Ionicons name="chevron-forward-outline" size={18} color="#bbb" />
+        }
       </TouchableOpacity>
 
       {photos.length > 0 ? (
         <View style={styles.photosGrid}>
-          {photos.map((uri, idx) => (
-            <View key={uri} style={styles.photoThumb}>
-              <Image source={{ uri }} style={styles.photoImg} contentFit="cover" />
-              {idx === 0 && (
-                <View style={styles.coverBadge}>
-                  <Text style={styles.coverBadgeText}>Cover</Text>
-                </View>
-              )}
-              <TouchableOpacity style={styles.photoRemoveBtn} onPress={() => removePhoto(uri)}>
-                <Ionicons name="close-circle" size={22} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          ))}
+          {photos.map((photo, idx) => {
+            if (!photo) return null
+            const displayUri = photo.localUri
+            const isUploading = photo.uploading
+            const isError = photo.error
+            return (
+              <View key={photo.id} style={styles.photoThumb}>
+                <Image source={{ uri: displayUri }} style={[styles.photoImg, (isUploading || isError) && { opacity: 0.5 }]} contentFit="cover" />
+                {idx === 0 && !isUploading && !isError && (
+                  <View style={styles.coverBadge}>
+                    <Text style={styles.coverBadgeText}>Cover</Text>
+                  </View>
+                )}
+                {isUploading && (
+                  <View style={styles.photoOverlay}>
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                )}
+                {isError && (
+                  <View style={[styles.photoOverlay, { backgroundColor: 'rgba(200,16,46,0.7)' }]}>
+                    <Ionicons name="alert-circle" size={22} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 9, marginTop: 2 }}>Failed</Text>
+                  </View>
+                )}
+                <TouchableOpacity style={styles.photoRemoveBtn} onPress={() => removePhoto(photo.id)}>
+                  <Ionicons name="close-circle" size={22} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )
+          })}
         </View>
       ) : (
         <View style={styles.photoEmptyState}>
@@ -627,7 +691,7 @@ function StepPhotos({ data, onChange, onNext, onBack }) {
         </View>
       )}
 
-      <NavRow onBack={onBack} onNext={onNext} nextLabel="Next: Review" />
+      <NavRow onBack={onBack} onNext={handleNext} nextLabel="Next: Review" disabled={anyUploading} />
     </View>
   )
 }
@@ -738,18 +802,22 @@ function StepReview({ identity, location, facilities, pricing, media, onBack, on
 
       {photos.length > 0 && (
         <View style={styles.reviewCard}>
-          <Text style={styles.reviewCardTitle}>Photos ({photos.length})</Text>
+          <Text style={styles.reviewCardTitle}>Photos ({photos.filter(p => p?.url).length} uploaded)</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
-            {photos.map((uri, idx) => (
-              <View key={uri} style={styles.reviewPhoto}>
-                <Image source={{ uri }} style={styles.reviewPhotoImg} contentFit="cover" />
-                {idx === 0 && (
-                  <View style={styles.coverBadge}>
-                    <Text style={styles.coverBadgeText}>Cover</Text>
-                  </View>
-                )}
-              </View>
-            ))}
+            {photos.map((photo, idx) => {
+              if (!photo) return null
+              const displayUri = photo.url || photo.localUri
+              return (
+                <View key={photo.id} style={styles.reviewPhoto}>
+                  <Image source={{ uri: displayUri }} style={styles.reviewPhotoImg} contentFit="cover" />
+                  {idx === 0 && photo.url && (
+                    <View style={styles.coverBadge}>
+                      <Text style={styles.coverBadgeText}>Cover</Text>
+                    </View>
+                  )}
+                </View>
+              )
+            })}
           </ScrollView>
         </View>
       )}
@@ -774,7 +842,8 @@ const GroundRegisterScreen = () => {
   const [pricing,    setPricing]    = useState({ pricePerHour: '', rules: '', cancellationPolicy: '' })
   const [media,      setMedia]      = useState({ photos: [] })
 
-  const patch = (setter) => (key, val) => setter((prev) => ({ ...prev, [key]: val }))
+  const patch = (setter) => (key, val) =>
+    setter((prev) => ({ ...prev, [key]: typeof val === 'function' ? val(prev[key]) : val }))
   const scrollTop = () => scrollRef.current?.scrollTo({ y: 0, animated: true })
   const goNext = () => { setStep((s) => s + 1); scrollTop() }
   const goBack = () => { setStep((s) => s - 1); scrollTop() }
@@ -782,12 +851,16 @@ const GroundRegisterScreen = () => {
   const handleSubmit = async () => {
     setSubmitting(true)
     try {
+      // Extract only successfully uploaded Cloudinary URLs
+      const uploadedPhotos = (media.photos || [])
+        .filter((p) => p?.url)
+        .map((p) => p.url)
       const payload = {
         ...identity,
         ...location,
         ...facilities,
         ...pricing,
-        photos: media.photos,
+        photos: uploadedPhotos,
       }
       const result = await registerGroundAPI(payload)
       if (result.success) {
@@ -1185,6 +1258,11 @@ const styles = StyleSheet.create({
   coverBadge: { position: 'absolute', bottom: 6, left: 6, backgroundColor: ACCENT, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   coverBadgeText: { color: '#fff', fontSize: 10, fontFamily: 'Poppins_700Bold' },
   photoRemoveBtn: { position: 'absolute', top: 4, right: 4 },
+  photoOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center', alignItems: 'center', borderRadius: 10,
+  },
 
   photoEmptyState: {
     alignItems: 'center',
