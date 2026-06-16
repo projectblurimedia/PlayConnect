@@ -58,6 +58,27 @@ const SURFACE_TYPES = [
   { key: 'GRASS',     label: 'Natural Grass' },
 ]
 
+const VENUE_TYPES = [
+  { key: 'TURF', label: 'Turf Ground', icon: 'leaf-outline'  },
+  { key: 'OPEN', label: 'Open Ground', icon: 'sunny-outline' },
+]
+
+// Times every 30 min from 00:00 to 23:30 (stored as 24-hr, displayed as 12-hr)
+const TIME_OPTIONS = []
+for (let h = 0; h < 24; h++) {
+  TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:00`)
+  TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:30`)
+}
+
+// "06:30" → "6:30 AM",  "14:00" → "2:00 PM"
+function to12h(time24) {
+  if (!time24) return ''
+  const [h, m] = time24.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
@@ -343,6 +364,7 @@ function StepLocation({ data, onChange, onNext, onBack }) {
 
 function StepFacilities({ data, onChange, onNext, onBack }) {
   const [surfaceModal, setSurfaceModal] = useState(false)
+  const [timeModal, setTimeModal] = useState(null) // null | 'openTime' | 'closeTime'
 
   const toggleSport = (key) => {
     const cur = data.supportedSports || []
@@ -366,6 +388,12 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
   const validate = () => {
     if (!(data.supportedSports || []).length)
       return Alert.alert('Required', 'Select at least one sport')
+    if (!data.groundType)
+      return Alert.alert('Required', 'Select a venue type')
+    if (!data.openTime || !data.closeTime)
+      return Alert.alert('Required', 'Set your daily opening and closing times')
+    if (data.openTime >= data.closeTime)
+      return Alert.alert('Invalid', 'Closing time must be after opening time')
     onNext()
   }
 
@@ -430,22 +458,40 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionLabel}>Ground Type</Text>
+      <Text style={styles.sectionLabel}>Venue Type *</Text>
       <View style={styles.radioRow}>
-        {[
-          { key: false, label: 'Outdoor', icon: 'sunny-outline' },
-          { key: true,  label: 'Indoor',  icon: 'home-outline'  },
-        ].map(({ key, label, icon }) => {
-          const active = data.isIndoor === key
+        {VENUE_TYPES.map(({ key, label, icon }) => {
+          const active = data.groundType === key
           return (
-            <TouchableOpacity key={String(key)}
+            <TouchableOpacity key={key}
               style={[styles.radioChip, active && styles.chipActive]}
-              onPress={() => onChange('isIndoor', key)}>
+              onPress={() => onChange('groundType', key)}>
               <Ionicons name={icon} size={16} color={active ? ACCENT : '#888'} />
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
             </TouchableOpacity>
           )
         })}
+      </View>
+
+      <Text style={styles.sectionLabel}>Operating Hours *</Text>
+      <Text style={styles.sectionHint}>Same opening & closing time every day</Text>
+      <View style={styles.twoCol}>
+        <View style={[styles.fieldGroup, styles.colLeft]}>
+          <FieldLabel label="Opens At" />
+          <TouchableOpacity style={styles.selectInput} onPress={() => setTimeModal('openTime')}>
+            <Ionicons name="time-outline" size={18} color={ACCENT} style={styles.inputIcon} />
+            <Text style={styles.selectText}>{to12h(data.openTime)}</Text>
+            <Ionicons name="chevron-down-outline" size={18} color="#aaa" />
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.fieldGroup, styles.colRight]}>
+          <FieldLabel label="Closes At" />
+          <TouchableOpacity style={styles.selectInput} onPress={() => setTimeModal('closeTime')}>
+            <Ionicons name="time-outline" size={18} color={ACCENT} style={styles.inputIcon} />
+            <Text style={styles.selectText}>{to12h(data.closeTime)}</Text>
+            <Ionicons name="chevron-down-outline" size={18} color="#aaa" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.sectionLabel}>Amenities</Text>
@@ -470,6 +516,14 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
         options={SURFACE_TYPES}
         onSelect={(v) => onChange('surfaceType', v)}
         onClose={() => setSurfaceModal(false)}
+      />
+
+      <SelectModal
+        visible={!!timeModal}
+        title={timeModal === 'openTime' ? 'Opening Time' : 'Closing Time'}
+        options={TIME_OPTIONS.map((t) => ({ key: t, label: to12h(t) }))}
+        onSelect={(v) => onChange(timeModal, v)}
+        onClose={() => setTimeModal(null)}
       />
 
       <NavRow onBack={onBack} onNext={validate} />
@@ -781,7 +835,14 @@ function StepReview({ identity, location, facilities, pricing, media, onBack, on
           label="Surface"
           value={SURFACE_TYPES.find((s) => s.key === facilities.surfaceType)?.label}
         />
-        <ReviewRow label="Type"      value={facilities.isIndoor ? 'Indoor' : 'Outdoor'} />
+        <ReviewRow
+          label="Venue Type"
+          value={VENUE_TYPES.find((v) => v.key === facilities.groundType)?.label}
+        />
+        <ReviewRow
+          label="Hours"
+          value={facilities.openTime && facilities.closeTime ? `${to12h(facilities.openTime)} – ${to12h(facilities.closeTime)}` : null}
+        />
         {(facilities.amenities || []).length > 0 && (
           <ReviewRow
             label="Amenities"
@@ -838,7 +899,7 @@ const GroundRegisterScreen = () => {
 
   const [identity,   setIdentity]   = useState({ name: '', description: '', contactPhone: '' })
   const [location,   setLocation]   = useState({ addressLine: '', city: '', state: '', pincode: '', latitude: '', longitude: '' })
-  const [facilities, setFacilities] = useState({ supportedSports: [], surfaceType: '', isIndoor: false, amenities: [], capacity: {} })
+  const [facilities, setFacilities] = useState({ supportedSports: [], surfaceType: '', groundType: '', openTime: '06:00', closeTime: '22:00', amenities: [], capacity: {} })
   const [pricing,    setPricing]    = useState({ pricePerHour: '', rules: '', cancellationPolicy: '' })
   const [media,      setMedia]      = useState({ photos: [] })
 

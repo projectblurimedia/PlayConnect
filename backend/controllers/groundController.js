@@ -6,6 +6,7 @@ export const registerGround = async (req, res) => {
       name, description, contactPhone,
       addressLine, city, state, pincode, latitude, longitude,
       supportedSports, surfaceType, isIndoor, amenities, capacity,
+      groundType, openTime, closeTime,
       pricePerHour, rules, cancellationPolicy, photos,
     } = req.body
 
@@ -17,6 +18,16 @@ export const registerGround = async (req, res) => {
     }
     if (!pricePerHour) {
       return res.status(400).json({ error: 'Price per hour is required' })
+    }
+    if (!['OPEN', 'TURF'].includes(groundType)) {
+      return res.status(400).json({ error: 'Ground type must be OPEN or TURF' })
+    }
+    const timeRe = /^([01]\d|2[0-3]):(00|30)$/
+    if (!timeRe.test(openTime) || !timeRe.test(closeTime)) {
+      return res.status(400).json({ error: 'Opening and closing times are required (30-min increments)' })
+    }
+    if (openTime >= closeTime) {
+      return res.status(400).json({ error: 'Closing time must be after opening time' })
     }
 
     const lat = latitude ? parseFloat(latitude) : 0
@@ -37,6 +48,9 @@ export const registerGround = async (req, res) => {
         supportedSports,
         surfaceType: surfaceType || null,
         isIndoor: isIndoor ?? false,
+        groundType,
+        openTime,
+        closeTime,
         amenities: amenities || [],
         capacity: capacity || null,
         pricePerHour: parseFloat(pricePerHour),
@@ -69,6 +83,7 @@ export const getNearbyGrounds = async (req, res) => {
         id: true, name: true, city: true, state: true, addressLine: true,
         supportedSports: true, pricePerHour: true, isIndoor: true,
         surfaceType: true, photos: true, isVerified: true, latitude: true, longitude: true,
+        groundType: true, openTime: true, closeTime: true,
       },
     })
 

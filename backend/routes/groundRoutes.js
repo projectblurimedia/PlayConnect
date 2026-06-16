@@ -2,8 +2,8 @@ import express from 'express'
 import { registerGround, getNearbyGrounds } from '../controllers/groundController.js'
 import {
   getGroundDetail, getMyGrounds, getMyBookings,
-  createSlots, getSlots, deleteSlot, updateSlotStatus,
-  bookSlot, cancelBooking,
+  getAvailability, createBooking, cancelBooking,
+  createBlock, deleteBlock, blockEntireDay,
 } from '../controllers/slotController.js'
 import { authenticate } from '../lib/authMiddleware.js'
 
@@ -20,14 +20,16 @@ router.get('/my-bookings', getMyBookings)
 // Ground detail
 router.get('/:groundId', getGroundDetail)
 
-// Slot management (owner)
-router.post('/:groundId/slots', createSlots)
-router.get('/:groundId/slots', getSlots)
-router.delete('/:groundId/slots/:slotId', deleteSlot)
-router.put('/:groundId/slots/:slotId/status', updateSlotStatus)
+// Dynamic availability
+router.get('/:groundId/availability', getAvailability)
 
 // Booking (user)
-router.post('/:groundId/slots/:slotId/book', bookSlot)
-router.delete('/:groundId/slots/:slotId/book', cancelBooking)
+router.post('/:groundId/bookings', createBooking)
+router.delete('/:groundId/bookings/:bookingId', cancelBooking)
+
+// Blocking (owner)
+router.post('/:groundId/blocks', createBlock)
+router.delete('/:groundId/blocks/:blockId', deleteBlock)
+router.post('/:groundId/block-day', blockEntireDay)
 
 export default router

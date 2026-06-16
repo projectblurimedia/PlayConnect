@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import { getPlayerProfile, getConnectionStatus, sendConnectionRequest, acceptConnection, rejectConnection } from '../services/api'
+import CricketStatsSection from '../components/CricketStatsSection'
 
 const ACCENT = '#C8102E'
 function Text(props) {
@@ -109,6 +110,7 @@ export default function PlayerProfileScreen() {
 
   const initials = (player.fullName || '?').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
   const isMe = myId === id
+  const cricket = player.sports?.find(s => s.sport === 'CRICKET')
 
   const renderConnectionButton = () => {
     if (isMe) return null
@@ -182,6 +184,8 @@ export default function PlayerProfileScreen() {
             {renderConnectionButton()}
           </View>
         </View>
+
+        <CricketStatsSection cricket={cricket} loading={loading} isDark={isDark} />
 
         <View style={{ padding: 16 }}>
           {player.bio && (

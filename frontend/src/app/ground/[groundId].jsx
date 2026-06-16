@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import {
-  getGroundDetail, getGroundSlots, bookGroundSlot, cancelGroundBooking,
+  getGroundDetail, getGroundAvailability, createGroundBooking, cancelGroundBooking,
 } from '../../services/api'
 
 const ACCENT = '#C8102E'
@@ -37,7 +37,7 @@ function formatDate(d) {
   return `${y}-${m}-${day}`
 }
 
-// Slots store times as UTC "wall clock" — display with UTC methods
+// Times stored as UTC "wall clock" — display with UTC methods
 function fmtTime(iso) {
   const d = new Date(iso)
   let h = d.getUTCHours()
@@ -47,8 +47,61 @@ function fmtTime(iso) {
   return `${h}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-function slotDurationHrs(slot) {
-  return (new Date(slot.endTime) - new Date(slot.startTime)) / 3600000
+function to12h(time24) {
+  if (!time24) return ''
+  const [h, m] = time24.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
+function timeToMinutes(t) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+function minutesToTime(mins) {
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+function isoMinutes(iso) {
+  const d = new Date(iso)
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
+}
+
+// ── Time option picker (used inside the booking sheet) ────────────────────────
+function TimeOptionModal({ visible, title, options, value, onSelect, onClose, cardBg, textColor, mutedColor, borderColor }) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity style={{ flex: 1 }} onPress={onClose} />
+        <View style={[styles.timeSheet, { backgroundColor: cardBg }]}>
+          <View style={styles.sheetHandle} />
+          <Text style={[styles.confirmTitle, { color: textColor }]}>{title}</Text>
+          <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
+            {options.map((mins) => {
+              const t = minutesToTime(mins)
+              const active = t === value
+              return (
+                <TouchableOpacity
+                  key={mins}
+                  style={[styles.timeOption, { borderBottomColor: borderColor }, active && { backgroundColor: ACCENT + '15' }]}
+                  onPress={() => { onSelect(t); onClose() }}
+                >
+                  <Text style={{ color: active ? ACCENT : textColor, fontSize: 15, fontFamily: active ? 'Poppins_700Bold' : 'Poppins_500Medium' }}>
+                    {to12h(t)}
+                  </Text>
+                  {active && <Ionicons name="checkmark" size={18} color={ACCENT} />}
+                </TouchableOpacity>
+              )
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  )
 }
 
 export default function GroundDetailScreen() {
@@ -59,14 +112,19 @@ export default function GroundDetailScreen() {
   const isDark = theme === 'dark'
 
   const [ground, setGround] = useState(null)
-  const [slots, setSlots] = useState([])
+  const [availability, setAvailability] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [slotsLoading, setSlotsLoading] = useState(false)
+  const [availLoading, setAvailLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()))
   const [selectedSport, setSelectedSport] = useState(null)
-  const [confirmSlot, setConfirmSlot] = useState(null)
-  const [ownerSlot, setOwnerSlot] = useState(null)
+
+  const [bookGap, setBookGap] = useState(null) // { startMins, endMins }
+  const [bookForm, setBookForm] = useState({ startTime: '', endTime: '', sport: '' })
+  const [timePicker, setTimePicker] = useState(null) // null | 'startTime' | 'endTime'
   const [booking, setBooking] = useState(false)
+
+  const [viewBooking, setViewBooking] = useState(null)
+
   const days = getDays(14)
 
   const bg = isDark ? '#111' : '#f8f9fa'
@@ -89,29 +147,45 @@ export default function GroundDetailScreen() {
     }
   }, [groundId])
 
-  const loadSlots = useCallback(async () => {
+  const loadAvailability = useCallback(async () => {
     if (!selectedDate) return
-    setSlotsLoading(true)
+    setAvailLoading(true)
     try {
-      const data = await getGroundSlots(groundId, { date: selectedDate, sport: selectedSport || undefined })
-      setSlots(data.slots || [])
+      const data = await getGroundAvailability(groundId, { date: selectedDate })
+      setAvailability(data)
     } catch {
-      setSlots([])
+      setAvailability(null)
     } finally {
-      setSlotsLoading(false)
+      setAvailLoading(false)
     }
-  }, [groundId, selectedDate, selectedSport])
+  }, [groundId, selectedDate])
 
   useEffect(() => { loadGround() }, [loadGround])
-  useEffect(() => { if (ground) loadSlots() }, [ground, loadSlots])
+  useEffect(() => { if (ground) loadAvailability() }, [ground, loadAvailability])
 
-  const handleBook = async () => {
-    if (!confirmSlot) return
+  const openBookModal = (gap) => {
+    const startMins = isoMinutes(gap.startTime)
+    const endMins = isoMinutes(gap.endTime)
+    setBookGap({ startMins, endMins })
+    setBookForm({
+      startTime: minutesToTime(startMins),
+      endTime: minutesToTime(Math.min(startMins + 30, endMins)),
+      sport: selectedSport || ground?.supportedSports?.[0] || '',
+    })
+  }
+
+  const handleConfirmBooking = async () => {
+    if (!bookForm.sport) return Alert.alert('Missing', 'Please select a sport')
     setBooking(true)
     try {
-      await bookGroundSlot(groundId, confirmSlot.id)
-      setConfirmSlot(null)
-      loadSlots()
+      await createGroundBooking(groundId, {
+        sport: bookForm.sport,
+        date: selectedDate,
+        startTime: bookForm.startTime,
+        endTime: bookForm.endTime,
+      })
+      setBookGap(null)
+      loadAvailability()
       Alert.alert('Booked!', 'Your slot has been booked. Pay at venue.')
     } catch (e) {
       Alert.alert('Failed', e.response?.data?.error || 'Booking failed')
@@ -120,15 +194,16 @@ export default function GroundDetailScreen() {
     }
   }
 
-  const handleCancel = (slot) => {
+  const handleCancel = (item) => {
     Alert.alert('Cancel Booking', 'Cancel this booking?', [
       { text: 'No' },
       {
         text: 'Yes, Cancel', style: 'destructive',
         onPress: async () => {
           try {
-            await cancelGroundBooking(groundId, slot.id)
-            loadSlots()
+            await cancelGroundBooking(groundId, item.id)
+            setViewBooking(null)
+            loadAvailability()
           } catch (e) {
             Alert.alert('Error', e.response?.data?.error || 'Failed to cancel')
           }
@@ -147,10 +222,26 @@ export default function GroundDetailScreen() {
 
   if (!ground) return null
 
-  const slotPrice = (slot) => {
-    const hrs = slotDurationHrs(slot)
-    return Math.round((slot.priceOverride ?? ground.pricePerHour) * hrs)
+  // Merge available gaps + existing bookings/blocks into one chronological list
+  const items = availability
+    ? [
+        ...availability.availableSlots.map(s => ({ kind: 'available', startTime: s.startTime, endTime: s.endTime })),
+        ...availability.bookings.map(b => ({ kind: 'taken', ...b })),
+      ].sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    : []
+
+  const priceFor = (startTime, endTime) => {
+    const hrs = (timeToMinutes(endTime) - timeToMinutes(startTime)) / 60
+    return Math.round(hrs * (ground.pricePerHour || 0))
   }
+
+  const startOptions = bookGap
+    ? Array.from({ length: Math.floor((bookGap.endMins - 30 - bookGap.startMins) / 30) + 1 }, (_, i) => bookGap.startMins + i * 30)
+    : []
+  const curStartMins = bookForm.startTime ? timeToMinutes(bookForm.startTime) : 0
+  const endOptions = bookGap
+    ? Array.from({ length: Math.floor((bookGap.endMins - (curStartMins + 30)) / 30) + 1 }, (_, i) => curStartMins + 30 + i * 30)
+    : []
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
@@ -197,13 +288,24 @@ export default function GroundDetailScreen() {
               <Ionicons name="call-outline" size={14} color={mutedColor} />
               <Text style={[styles.metaText, { color: mutedColor }]}>{' '}{ground.contactPhone}</Text>
             </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="time-outline" size={14} color={mutedColor} />
+              <Text style={[styles.metaText, { color: mutedColor }]}>
+                {' '}Open {to12h(ground.openTime)} – {to12h(ground.closeTime)} (every day)
+              </Text>
+            </View>
 
             {ground.description && (
               <Text style={[styles.description, { color: mutedColor }]}>{ground.description}</Text>
             )}
 
-            {/* Surface + Indoor */}
+            {/* Surface + Indoor + Venue type */}
             <View style={[styles.tagsRow, { marginTop: 10 }]}>
+              <View style={[styles.tag, { backgroundColor: ACCENT + '12' }]}>
+                <Text style={[styles.tagText, { color: ACCENT }]}>
+                  {ground.groundType === 'OPEN' ? '🌤️ Open Ground' : '🌱 Turf Ground'}
+                </Text>
+              </View>
               {ground.surfaceType && (
                 <View style={[styles.tag, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
                   <Text style={[styles.tagText, { color: textColor }]}>{ground.surfaceType}</Text>
@@ -226,13 +328,13 @@ export default function GroundDetailScreen() {
             )}
 
             {/* Sport filter tabs */}
-            <Text style={[styles.sectionLabel, { marginTop: 14 }]}>SPORTS</Text>
+            <Text style={[styles.sectionLabel, { marginTop: 14 }]}>SPORT TO BOOK</Text>
             <View style={styles.sportsRow}>
               {(ground.supportedSports || []).map(s => (
                 <TouchableOpacity
                   key={s}
                   style={[styles.sportChip, selectedSport === s && styles.sportChipActive]}
-                  onPress={() => setSelectedSport(selectedSport === s ? null : s)}
+                  onPress={() => setSelectedSport(s)}
                 >
                   <Text style={[styles.sportChipText, { color: selectedSport === s ? '#fff' : ACCENT }]}>
                     {SPORT_EMOJI[s]} {s}
@@ -248,7 +350,7 @@ export default function GroundDetailScreen() {
                 onPress={() => router.push(`/manage-slots/${groundId}`)}
               >
                 <Ionicons name="settings-outline" size={16} color="#fff" />
-                <Text style={styles.manageBtnText}>Manage Slots</Text>
+                <Text style={styles.manageBtnText}>Manage Availability</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -281,62 +383,84 @@ export default function GroundDetailScreen() {
             }}
           />
 
-          {/* Slots */}
-          <Text style={[styles.sectionLabel, { marginTop: 4 }]}>AVAILABLE SLOTS</Text>
-          {slotsLoading
+          {/* Availability */}
+          <Text style={[styles.sectionLabel, { marginTop: 4 }]}>AVAILABILITY</Text>
+          {availLoading
             ? <ActivityIndicator color={ACCENT} style={{ marginVertical: 24 }} />
-            : slots.length === 0
+            : items.length === 0
               ? (
                 <View style={[styles.emptySlots, { backgroundColor: cardBg }]}>
                   <Ionicons name="time-outline" size={44} color="#ccc" />
-                  <Text style={[styles.emptyText, { color: mutedColor }]}>No slots for this date</Text>
-                  {isOwner && (
-                    <Text style={[styles.emptyHint, { color: mutedColor }]}>Tap "Manage Slots" to add availability</Text>
-                  )}
+                  <Text style={[styles.emptyText, { color: mutedColor }]}>No availability for this date</Text>
                 </View>
               )
               : (
                 <View style={styles.slotsList}>
-                  {slots.map(slot => {
-                    const isMyBooking = slot.bookedById === myUser?.id
-                    const isPast = new Date(slot.startTime) < new Date()
-                    const price = slotPrice(slot)
+                  {items.map((item, idx) => {
+                    const isPast = new Date(item.endTime) <= new Date()
 
-                    let accentC = '#9ca3af'
-                    let bgTint = isDark ? '#ffffff08' : '#f4f4f5'
-                    let label = 'Taken'
+                    if (item.kind === 'available') {
+                      return (
+                        <TouchableOpacity
+                          key={`a-${idx}`}
+                          style={[styles.slotRow, { backgroundColor: isDark ? '#22c55e18' : '#f0fdf4' }]}
+                          onPress={() => !isPast && !isOwner && openBookModal(item)}
+                          activeOpacity={!isPast && !isOwner ? 0.75 : 1}
+                        >
+                          <View style={[styles.slotAccentBar, { backgroundColor: '#22c55e' }]} />
+                          <View style={styles.slotBody}>
+                            <View style={styles.slotTimeRow}>
+                              <Ionicons name="time-outline" size={13} color="#22c55e" />
+                              <Text style={[styles.slotTimeText, { color: textColor }]}>
+                                {fmtTime(item.startTime)} – {fmtTime(item.endTime)}
+                              </Text>
+                            </View>
+                            {!isOwner && !isPast && (
+                              <Text style={[styles.cancelHint, { color: '#22c55e' }]}>tap to book</Text>
+                            )}
+                          </View>
+                          <View style={styles.slotRight}>
+                            <Text style={[styles.slotPriceText, { color: ACCENT }]}>₹{ground.pricePerHour}/hr</Text>
+                            <View style={[styles.slotBadge, { backgroundColor: '#22c55e' }]}>
+                              <Text style={styles.slotBadgeText}>{isPast ? 'Past' : 'Available'}</Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      )
+                    }
 
-                    if (isPast) { accentC = '#9ca3af'; label = 'Past' }
+                    // kind === 'taken'
+                    const isMyBooking = item.status === 'BOOKED' && item.bookedById === myUser?.id
+                    let accentC = '#3b82f6'
+                    let bgTint = isDark ? '#3b82f618' : '#eff6ff'
+                    let label = 'Booked'
+
+                    if (item.status === 'BLOCKED') { accentC = '#6b7280'; bgTint = isDark ? '#6b728018' : '#f9fafb'; label = 'Blocked' }
                     else if (isMyBooking) { accentC = '#f59e0b'; bgTint = isDark ? '#f59e0b18' : '#fef9ee'; label = 'Your Booking' }
-                    else if (slot.status === 'AVAILABLE') { accentC = '#22c55e'; bgTint = isDark ? '#22c55e18' : '#f0fdf4'; label = 'Available' }
-                    else if (slot.status === 'BLOCKED') { accentC = '#6b7280'; bgTint = isDark ? '#6b728018' : '#f9fafb'; label = 'Blocked' }
+                    if (isPast) { accentC = '#9ca3af'; bgTint = isDark ? '#ffffff08' : '#f4f4f5'; label = 'Past' }
 
                     return (
                       <TouchableOpacity
-                        key={slot.id}
+                        key={item.id}
                         style={[styles.slotRow, { backgroundColor: bgTint }]}
-                        onPress={() => {
-                          if (isOwner) { setOwnerSlot(slot); return }
-                          if (isPast) return
-                          if (slot.status === 'AVAILABLE') setConfirmSlot(slot)
-                          else if (isMyBooking) handleCancel(slot)
-                        }}
-                        activeOpacity={isOwner || (slot.status === 'AVAILABLE' || isMyBooking) && !isPast ? 0.75 : 1}
+                        onPress={() => { if (isOwner || isMyBooking) setViewBooking(item) }}
+                        activeOpacity={isOwner || isMyBooking ? 0.75 : 1}
                       >
                         <View style={[styles.slotAccentBar, { backgroundColor: accentC }]} />
                         <View style={styles.slotBody}>
                           <View style={styles.slotTimeRow}>
                             <Ionicons name="time-outline" size={13} color={accentC} />
                             <Text style={[styles.slotTimeText, { color: textColor }]}>
-                              {fmtTime(slot.startTime)} – {fmtTime(slot.endTime)}
+                              {fmtTime(item.startTime)} – {fmtTime(item.endTime)}
                             </Text>
                           </View>
-                          {isMyBooking && !isPast && (
-                            <Text style={[styles.cancelHint, { color: '#f59e0b' }]}>tap to cancel</Text>
+                          {item.status !== 'BLOCKED' && (
+                            <Text style={[styles.cancelHint, { color: mutedColor }]}>
+                              {SPORT_EMOJI[item.sport]} {item.sport}
+                            </Text>
                           )}
                         </View>
                         <View style={styles.slotRight}>
-                          <Text style={[styles.slotPriceText, { color: ACCENT }]}>₹{price}</Text>
                           <View style={[styles.slotBadge, { backgroundColor: accentC }]}>
                             <Text style={styles.slotBadgeText}>{label}</Text>
                           </View>
@@ -350,51 +474,78 @@ export default function GroundDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Booking confirmation modal */}
-      <Modal visible={!!confirmSlot} transparent animationType="fade" onRequestClose={() => setConfirmSlot(null)}>
+      {/* Booking sheet */}
+      <Modal visible={!!bookGap} transparent animationType="fade" onRequestClose={() => setBookGap(null)}>
         <View style={styles.modalOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={() => setConfirmSlot(null)} />
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setBookGap(null)} />
           <View style={[styles.confirmSheet, { backgroundColor: cardBg }]}>
             <View style={styles.sheetHandle} />
-            <Text style={[styles.confirmTitle, { color: textColor }]}>Confirm Booking</Text>
+            <Text style={[styles.confirmTitle, { color: textColor }]}>Book This Ground</Text>
 
-            {confirmSlot && (
+            {bookGap && (
               <>
                 <Text style={[styles.confirmGroundName, { color: textColor }]}>{ground.name}</Text>
+
+                {/* Sport selector */}
+                {(ground.supportedSports || []).length > 1 && (
+                  <View style={[styles.sportsRow, { marginBottom: 14 }]}>
+                    {(ground.supportedSports || []).map(s => (
+                      <TouchableOpacity
+                        key={s}
+                        style={[styles.sportChip, bookForm.sport === s && styles.sportChipActive]}
+                        onPress={() => setBookForm(f => ({ ...f, sport: s }))}
+                      >
+                        <Text style={[styles.sportChipText, { color: bookForm.sport === s ? '#fff' : ACCENT }]}>
+                          {SPORT_EMOJI[s]} {s}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
 
                 <View style={[styles.confirmInfoBox, { backgroundColor: isDark ? '#2a2a2a' : '#f8f9fa' }]}>
                   <View style={styles.confirmRow}>
                     <Ionicons name="calendar-outline" size={16} color={mutedColor} />
                     <Text style={[styles.confirmDetail, { color: textColor }]}>{selectedDate}</Text>
                   </View>
-                  <View style={styles.confirmRow}>
-                    <Ionicons name="time-outline" size={16} color={mutedColor} />
-                    <Text style={[styles.confirmDetail, { color: textColor }]}>
-                      {fmtTime(confirmSlot.startTime)} – {fmtTime(confirmSlot.endTime)}
-                    </Text>
+                </View>
+
+                {/* Start / End time pickers */}
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pickerLabel, { color: mutedColor }]}>START TIME</Text>
+                    <TouchableOpacity style={[styles.pickerField, { borderColor }]} onPress={() => setTimePicker('startTime')}>
+                      <Ionicons name="time-outline" size={16} color={mutedColor} />
+                      <Text style={[styles.pickerText, { color: textColor }]}>{to12h(bookForm.startTime)}</Text>
+                      <Ionicons name="chevron-down" size={16} color={mutedColor} />
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.confirmRow}>
-                    <Text style={{ fontSize: 16 }}>{SPORT_EMOJI[confirmSlot.sport]}</Text>
-                    <Text style={[styles.confirmDetail, { color: textColor }]}>{confirmSlot.sport}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.pickerLabel, { color: mutedColor }]}>END TIME</Text>
+                    <TouchableOpacity style={[styles.pickerField, { borderColor }]} onPress={() => setTimePicker('endTime')}>
+                      <Ionicons name="time-outline" size={16} color={mutedColor} />
+                      <Text style={[styles.pickerText, { color: textColor }]}>{to12h(bookForm.endTime)}</Text>
+                      <Ionicons name="chevron-down" size={16} color={mutedColor} />
+                    </TouchableOpacity>
                   </View>
                 </View>
 
                 <View style={[styles.priceBox, { backgroundColor: ACCENT + '12' }]}>
                   <Text style={[styles.priceLabel, { color: mutedColor }]}>Total Amount</Text>
-                  <Text style={[styles.priceValue, { color: ACCENT }]}>₹{slotPrice(confirmSlot)}</Text>
+                  <Text style={[styles.priceValue, { color: ACCENT }]}>₹{priceFor(bookForm.startTime, bookForm.endTime)}</Text>
                 </View>
-                <Text style={[styles.payNote, { color: mutedColor }]}>💵 Payment collected at the venue</Text>
+                <Text style={[styles.payNote, { color: mutedColor }]}>💵 Payment collected at the venue · Min 30 min</Text>
               </>
             )}
 
             <View style={styles.confirmBtns}>
               <TouchableOpacity
                 style={[styles.btnSecondary, { borderColor }]}
-                onPress={() => setConfirmSlot(null)}
+                onPress={() => setBookGap(null)}
               >
                 <Text style={[styles.btnSecondaryText, { color: textColor }]}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.btnPrimary} onPress={handleBook} disabled={booking}>
+              <TouchableOpacity style={styles.btnPrimary} onPress={handleConfirmBooking} disabled={booking}>
                 {booking
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Text style={styles.btnPrimaryText}>Book Now</Text>
@@ -405,61 +556,93 @@ export default function GroundDetailScreen() {
         </View>
       </Modal>
 
-      {/* Owner slot detail modal */}
-      <Modal visible={!!ownerSlot} transparent animationType="fade" onRequestClose={() => setOwnerSlot(null)}>
+      {/* Start time picker */}
+      <TimeOptionModal
+        visible={timePicker === 'startTime'}
+        title="Start Time"
+        options={startOptions}
+        value={bookForm.startTime}
+        onSelect={(t) => {
+          setBookForm(f => {
+            const newStartMins = timeToMinutes(t)
+            const curEndMins = timeToMinutes(f.endTime)
+            const endTime = curEndMins <= newStartMins ? minutesToTime(Math.min(newStartMins + 30, bookGap.endMins)) : f.endTime
+            return { ...f, startTime: t, endTime }
+          })
+        }}
+        onClose={() => setTimePicker(null)}
+        cardBg={cardBg} textColor={textColor} mutedColor={mutedColor} borderColor={borderColor}
+      />
+
+      {/* End time picker */}
+      <TimeOptionModal
+        visible={timePicker === 'endTime'}
+        title="End Time"
+        options={endOptions}
+        value={bookForm.endTime}
+        onSelect={(t) => setBookForm(f => ({ ...f, endTime: t }))}
+        onClose={() => setTimePicker(null)}
+        cardBg={cardBg} textColor={textColor} mutedColor={mutedColor} borderColor={borderColor}
+      />
+
+      {/* Booking / block detail modal */}
+      <Modal visible={!!viewBooking} transparent animationType="fade" onRequestClose={() => setViewBooking(null)}>
         <View style={styles.modalOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={() => setOwnerSlot(null)} />
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setViewBooking(null)} />
           <View style={[styles.confirmSheet, { backgroundColor: cardBg }]}>
             <View style={styles.sheetHandle} />
-            <Text style={[styles.confirmTitle, { color: textColor }]}>Slot Details</Text>
-            {ownerSlot && (
+            <Text style={[styles.confirmTitle, { color: textColor }]}>
+              {viewBooking?.status === 'BLOCKED' ? 'Blocked Time' : 'Booking Details'}
+            </Text>
+            {viewBooking && (
               <>
                 <View style={[styles.confirmInfoBox, { backgroundColor: isDark ? '#2a2a2a' : '#f8f9fa' }]}>
                   <View style={styles.confirmRow}>
                     <Ionicons name="time-outline" size={16} color={mutedColor} />
                     <Text style={[styles.confirmDetail, { color: textColor }]}>
-                      {fmtTime(ownerSlot.startTime)} – {fmtTime(ownerSlot.endTime)}
+                      {fmtTime(viewBooking.startTime)} – {fmtTime(viewBooking.endTime)}
                     </Text>
                   </View>
-                  <View style={styles.confirmRow}>
-                    <Text style={{ fontSize: 16 }}>{SPORT_EMOJI[ownerSlot.sport]}</Text>
-                    <Text style={[styles.confirmDetail, { color: textColor }]}>{ownerSlot.sport}</Text>
-                  </View>
-                  <View style={styles.confirmRow}>
-                    <Ionicons name="cash-outline" size={16} color={mutedColor} />
-                    <Text style={[styles.confirmDetail, { color: ACCENT }]}>₹{slotPrice(ownerSlot)}</Text>
-                  </View>
-                  {ownerSlot.status === 'BOOKED' && ownerSlot.bookedBy && (
+                  {viewBooking.status !== 'BLOCKED' && (
+                    <View style={styles.confirmRow}>
+                      <Text style={{ fontSize: 16 }}>{SPORT_EMOJI[viewBooking.sport]}</Text>
+                      <Text style={[styles.confirmDetail, { color: textColor }]}>{viewBooking.sport}</Text>
+                    </View>
+                  )}
+                  {viewBooking.status !== 'BLOCKED' && (
+                    <View style={styles.confirmRow}>
+                      <Ionicons name="cash-outline" size={16} color={mutedColor} />
+                      <Text style={[styles.confirmDetail, { color: ACCENT }]}>
+                        ₹{priceFor(minutesToTime(isoMinutes(viewBooking.startTime)), minutesToTime(isoMinutes(viewBooking.endTime)))}
+                      </Text>
+                    </View>
+                  )}
+                  {isOwner && viewBooking.bookedBy && (
                     <>
                       <View style={styles.confirmRow}>
                         <Ionicons name="person-circle-outline" size={16} color='#3b82f6' />
-                        <Text style={[styles.confirmDetail, { color: '#3b82f6' }]}>{ownerSlot.bookedBy.fullName}</Text>
+                        <Text style={[styles.confirmDetail, { color: '#3b82f6' }]}>{viewBooking.bookedBy.fullName}</Text>
                       </View>
-                      {ownerSlot.bookedBy.phone && (
+                      {viewBooking.bookedBy.phone && (
                         <View style={styles.confirmRow}>
                           <Ionicons name="call-outline" size={16} color='#3b82f6' />
-                          <Text style={[styles.confirmDetail, { color: '#3b82f6' }]}>{ownerSlot.bookedBy.phone}</Text>
+                          <Text style={[styles.confirmDetail, { color: '#3b82f6' }]}>{viewBooking.bookedBy.phone}</Text>
                         </View>
                       )}
                     </>
                   )}
                 </View>
-                <View style={[styles.priceBox, {
-                  backgroundColor: ownerSlot.status === 'BOOKED' ? '#3b82f620'
-                    : ownerSlot.status === 'AVAILABLE' ? '#22c55e12' : '#6b728012',
-                }]}>
-                  <Text style={[styles.priceLabel, { color: mutedColor }]}>Status</Text>
-                  <Text style={[styles.priceValue, {
-                    color: ownerSlot.status === 'BOOKED' ? '#3b82f6'
-                      : ownerSlot.status === 'AVAILABLE' ? '#22c55e' : '#6b7280',
-                    fontSize: 18,
-                  }]}>{ownerSlot.status}</Text>
-                </View>
+
+                {viewBooking.status === 'BOOKED' && viewBooking.bookedById === myUser?.id && new Date(viewBooking.startTime) > new Date() && (
+                  <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#ef4444', marginBottom: 10 }]} onPress={() => handleCancel(viewBooking)}>
+                    <Text style={styles.btnPrimaryText}>Cancel Booking</Text>
+                  </TouchableOpacity>
+                )}
               </>
             )}
             <TouchableOpacity
               style={[styles.btnSecondary, { borderColor, marginTop: 4 }]}
-              onPress={() => setOwnerSlot(null)}
+              onPress={() => setViewBooking(null)}
             >
               <Text style={[styles.btnSecondaryText, { color: textColor }]}>Close</Text>
             </TouchableOpacity>
@@ -539,7 +722,6 @@ const styles = StyleSheet.create({
     borderRadius: 16, padding: 36, alignItems: 'center',
   },
   emptyText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', marginTop: 12 },
-  emptyHint: { fontSize: 12, marginTop: 4, textAlign: 'center' },
 
   // Slots list
   slotsList: { gap: 8 },
@@ -552,10 +734,10 @@ const styles = StyleSheet.create({
   slotTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   slotTimeText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
   slotRight: { alignItems: 'flex-end', paddingRight: 14, gap: 5 },
-  slotPriceText: { fontSize: 15, fontFamily: 'Poppins_700Bold' },
+  slotPriceText: { fontSize: 13, fontFamily: 'Poppins_700Bold' },
   slotBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   slotBadgeText: { color: '#fff', fontSize: 10, fontFamily: 'Poppins_600SemiBold' },
-  cancelHint: { fontSize: 9, fontFamily: 'Poppins_500Medium', marginTop: 3 },
+  cancelHint: { fontSize: 11, fontFamily: 'Poppins_500Medium', marginTop: 3 },
 
   // Confirm modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
@@ -590,4 +772,22 @@ const styles = StyleSheet.create({
     alignItems: 'center', backgroundColor: '#C8102E',
   },
   btnPrimaryText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins_700Bold' },
+
+  // Time picker fields (booking sheet)
+  pickerLabel: { fontSize: 10, fontFamily: 'Poppins_700Bold', letterSpacing: 0.8, marginBottom: 6 },
+  pickerField: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 12, padding: 12, borderWidth: 1.5,
+  },
+  pickerText: { flex: 1, fontSize: 14, fontFamily: 'Poppins_500Medium' },
+
+  // Time option list modal
+  timeSheet: {
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 24, paddingBottom: 36,
+  },
+  timeOption: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 13, borderBottomWidth: 0.5,
+  },
 })

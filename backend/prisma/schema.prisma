@@ -38,6 +38,11 @@ enum SurfaceType {
   GRASS
 }
 
+enum GroundType {
+  OPEN
+  TURF
+}
+
 enum SlotStatus {
   AVAILABLE
   BOOKED
@@ -121,6 +126,8 @@ model User {
   notificationsFrom   Notification[] @relation("NotificationFrom")
   createdTeams        Team[]         @relation("TeamCreator")
   teamMemberships     TeamMember[]
+  createdMatches      Match[]        @relation("MatchCreator")
+  matchPlayerData     MatchPlayer[]  @relation("MatchPlayerUser")
 
   @@index([username])
   @@index([phone])
@@ -181,6 +188,11 @@ model Ground {
   amenities       String[]
   surfaceType     SurfaceType?
   isIndoor        Boolean @default(false)
+  groundType      GroundType @default(TURF)
+
+  // Daily operating hours — "HH:MM" 24-hour, applies every day
+  openTime  String @default("06:00")
+  closeTime String @default("22:00")
 
   capacity Json?
 
@@ -324,11 +336,13 @@ model Team {
   logoUrl     String?
   inviteCode  String       @unique
   maxPlayers  Int          @default(11)
-  createdBy   String
-  creator     User         @relation("TeamCreator", fields: [createdBy], references: [id])
-  members     TeamMember[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdBy      String
+  creator        User         @relation("TeamCreator", fields: [createdBy], references: [id])
+  members        TeamMember[]
+  matchesAsTeam1 Match[]      @relation("MatchTeam1")
+  matchesAsTeam2 Match[]      @relation("MatchTeam2")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([inviteCode])
   @@map("teams")
@@ -347,4 +361,143 @@ model TeamMember {
   @@index([teamId])
   @@index([userId])
   @@map("team_members")
+}
+
+// ─────────────────────────────────────────────
+// MATCH
+// ─────────────────────────────────────────────
+
+enum MatchStatus {
+  IN_PROGRESS
+  INNINGS_BREAK
+  COMPLETED
+}
+
+enum TossChoice {
+  BAT
+  BOWL
+}
+
+model Match {
+  id                  String      @id @default(cuid())
+
+  team1Id             String
+  team1               Team        @relation("MatchTeam1", fields: [team1Id], references: [id])
+  team2Id             String
+  team2               Team        @relation("MatchTeam2", fields: [team2Id], references: [id])
+
+  totalOvers          Int
+  matchFormat         String      @default("CUSTOM")
+  ballType            String      @default("LEATHER")
+  powerplayOvers      Int         @default(6)
+  isTest              Boolean     @default(false)
+
+  tossWonByTeamId     String
+  tossChoice          TossChoice
+  battingFirstTeamId  String
+
+  status              MatchStatus @default(IN_PROGRESS)
+  currentInning       Int         @default(1)
+
+  strikerBatsmanId    String?
+  nonStrikerBatsmanId String?
+  currentBowlerId     String?
+
+  createdBy           String
+  creator             User        @relation("MatchCreator", fields: [createdBy], references: [id])
+
+  innings             MatchInning[]
+  players             MatchPlayer[]
+
+  result              String?
+  winnerTeamId        String?
+  bestBatsmanId       String?
+  bestBowlerId        String?
+  mvpId               String?
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([createdBy])
+  @@index([status])
+  @@index([team1Id])
+  @@index([team2Id])
+  @@map("matches")
+}
+
+model MatchInning {
+  id            String   @id @default(cuid())
+
+  matchId       String
+  match         Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  inningNumber  Int
+  battingTeamId String
+  bowlingTeamId String
+
+  totalRuns     Int      @default(0)
+  totalWickets  Int      @default(0)
+  legalBalls    Int      @default(0)
+  extras        Int      @default(0)
+  completed     Boolean  @default(false)
+
+  balls         MatchBall[]
+
+  createdAt     DateTime @default(now())
+
+  @@index([matchId])
+  @@map("match_innings")
+}
+
+model MatchBall {
+  id          String      @id @default(cuid())
+
+  inningId    String
+  inning      MatchInning @relation(fields: [inningId], references: [id], onDelete: Cascade)
+
+  overNumber  Int
+  ballNumber  Int
+  batsmanId   String
+  bowlerId    String
+
+  runs        Int         @default(0)
+  extras      Int         @default(0)
+  extraType   String?
+
+  isWicket    Boolean     @default(false)
+  wicketType  String?
+  caughtById  String?
+
+  prevStrikerBatsmanId    String?
+  prevNonStrikerBatsmanId String?
+
+  createdAt   DateTime    @default(now())
+
+  @@index([inningId])
+  @@map("match_balls")
+}
+
+model MatchPlayer {
+  id               String   @id @default(cuid())
+
+  matchId          String
+  match            Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User     @relation("MatchPlayerUser", fields: [userId], references: [id])
+  teamId           String
+
+  runsScored       Int      @default(0)
+  ballsFaced       Int      @default(0)
+  fours            Int      @default(0)
+  sixes            Int      @default(0)
+  isOut            Boolean  @default(false)
+
+  runsConceded     Int      @default(0)
+  legalBallsBowled Int      @default(0)
+  wicketsTaken     Int      @default(0)
+
+  @@unique([matchId, userId])
+  @@index([matchId])
+  @@index([userId])
+  @@map("match_players")
 }

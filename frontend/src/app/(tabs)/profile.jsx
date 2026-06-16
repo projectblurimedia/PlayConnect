@@ -7,21 +7,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSelector } from 'react-redux'
 import { useRouter } from 'expo-router'
-import { getConnections } from '../../services/api'
+import { getConnections, getPlayerProfile } from '../../services/api'
+import CricketStatsSection from '../../components/CricketStatsSection'
 
 const ACCENT = '#C8102E'
 
 function Text(props) {
   return <RNText {...props} style={[{ fontFamily: 'Poppins_400Regular' }, props.style]} />
-}
-
-const SPORT_EMOJI = { CRICKET: '🏏', FOOTBALL: '⚽', BASKETBALL: '🏀', BADMINTON: '🏸', VOLLEYBALL: '🏐', KABADDI: '🤼', TENNIS: '🎾', OTHER: '🏃' }
-
-const SKILL_COLOR = {
-  Beginner: '#22c55e',
-  Intermediate: '#f59e0b',
-  Advanced: '#0891b2',
-  Professional: ACCENT,
 }
 
 export default function ProfileScreen() {
@@ -33,6 +25,8 @@ export default function ProfileScreen() {
 
   const [connections, setConnections] = useState([])
   const [loadingConn, setLoadingConn] = useState(true)
+  const [profile, setProfile] = useState(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const bg = isDark ? '#111' : '#efefef'
@@ -51,13 +45,28 @@ export default function ProfileScreen() {
     }
   }, [])
 
+  const loadProfile = useCallback(async () => {
+    if (!user?.id) { setLoadingProfile(false); return }
+    try {
+      const data = await getPlayerProfile(user.id)
+      setProfile(data.user)
+    } catch {
+      setProfile(null)
+    } finally {
+      setLoadingProfile(false)
+    }
+  }, [user?.id])
+
   useEffect(() => { loadConnections() }, [loadConnections])
+  useEffect(() => { loadProfile() }, [loadProfile])
 
   const onRefresh = async () => {
     setRefreshing(true)
-    await loadConnections()
+    await Promise.all([loadConnections(), loadProfile()])
     setRefreshing(false)
   }
+
+  const cricket = profile?.sports?.find(s => s.sport === 'CRICKET')
 
   return (
     <ScrollView
@@ -66,104 +75,52 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
     >
-      {/* Profile hero */}
-      <LinearGradient
-        colors={[ACCENT, '#a00d24']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroAvatar}>
-          {user?.profilePhotoUrl
-            ? <Image source={{ uri: user.profilePhotoUrl }} style={styles.avatar} />
-            : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarInitials}>{initials}</Text>
-              </View>
-            )
-          }
-          <View style={styles.heroBadge}>
-            <Ionicons name="walk" size={12} color={ACCENT} />
-          </View>
-        </View>
-        <Text style={styles.heroName}>{user?.fullName || '—'}</Text>
-        <Text style={styles.heroHandle}>@{user?.username || '—'}</Text>
-        {(user?.city || user?.state) && (
-          <View style={styles.heroLocation}>
-            <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.heroLocationText}>{[user.city, user.state].filter(Boolean).join(', ')}</Text>
-          </View>
-        )}
-      </LinearGradient>
-
-      {/* Stats */}
-      <View style={[styles.statsRow, { backgroundColor: cardBg }]}>
-        {[
-          { label: 'Matches', value: '0', icon: 'football-outline' },
-          { label: 'Wins', value: '0', icon: 'trophy-outline' },
-          { label: 'Friends', value: loadingConn ? '…' : String(connections.length), icon: 'people-outline' },
-        ].map((s, i) => (
-          <React.Fragment key={s.label}>
-            <View style={styles.statItem}>
-              <Ionicons name={s.icon} size={16} color={ACCENT} style={{ marginBottom: 4 }} />
-              <Text style={[styles.statValue, { color: textColor }]}>{s.value}</Text>
-              <Text style={[styles.statLabel, { color: mutedColor }]}>{s.label}</Text>
+      {/* Profile header */}
+      <View style={[styles.profileHeader, { backgroundColor: cardBg }]}>
+        <LinearGradient
+          colors={['#e0112e', '#7d0a1c']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.coverBanner}
+        >
+          <View style={styles.heroDecorCircle1} />
+          <View style={styles.heroDecorCircle2} />
+          {(profile?.city || profile?.state) && (
+            <View style={styles.bannerLocationChip}>
+              <Ionicons name="location" size={12} color="#fff" />
+              <Text style={styles.bannerLocationText} numberOfLines={1}>
+                {[profile?.city, profile?.state].filter(Boolean).join(', ')}
+              </Text>
             </View>
-            {i < 2 && <View style={[styles.statDivider, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]} />}
-          </React.Fragment>
-        ))}
-      </View>
+          )}
+        </LinearGradient>
 
-      {/* Sports */}
-      {user?.sports?.length > 0 && (
-        <View style={[styles.card, { backgroundColor: cardBg }]}>
-          <Text style={styles.sectionLabel}>MY SPORTS</Text>
-          {user.sports.map((s, i) => {
-            const skillColor = SKILL_COLOR[s.skillLevel] || '#888'
-            return (
-              <View
-                key={i}
-                style={[styles.sportRow, { borderBottomColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}
-              >
-                <View style={styles.sportEmojiWrap}>
-                  <Text style={styles.sportEmoji}>{SPORT_EMOJI[s.sport] || '🏃'}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.sportName, { color: textColor }]}>{s.sport}</Text>
-                  {s.preferredRole && (
-                    <Text style={[styles.sportRole, { color: mutedColor }]}>{s.preferredRole}</Text>
-                  )}
-                </View>
-                {s.skillLevel && (
-                  <View style={[styles.skillBadge, { backgroundColor: skillColor + '18', borderColor: skillColor + '40' }]}>
-                    <Text style={[styles.skillBadgeText, { color: skillColor }]}>{s.skillLevel}</Text>
+        <View style={styles.headerBody}>
+          <View style={styles.headerTopRow}>
+            <View style={[styles.headerAvatarWrap, { borderColor: cardBg }]}>
+              {user?.profilePhotoUrl
+                ? <Image source={{ uri: user.profilePhotoUrl }} style={styles.headerAvatar} />
+                : (
+                  <View style={styles.headerAvatarFallback}>
+                    <Text style={styles.avatarInitials}>{initials}</Text>
                   </View>
-                )}
-              </View>
-            )
-          })}
-        </View>
-      )}
+                )
+              }
+            </View>
 
-      {/* Contact info */}
-      <View style={[styles.card, { backgroundColor: cardBg }]}>
-        <Text style={styles.sectionLabel}>CONTACT INFO</Text>
-        {[
-          { icon: 'call-outline', label: 'Phone', value: user?.phone },
-          { icon: 'mail-outline', label: 'Email', value: user?.email },
-          { icon: 'calendar-outline', label: 'Date of Birth', value: user?.dob },
-          { icon: 'person-outline', label: 'Gender', value: user?.gender },
-        ].filter(f => f.value).map(f => (
-          <View key={f.label} style={[styles.infoRow, { borderBottomColor: isDark ? '#2a2a2a' : '#f5f5f5' }]}>
-            <View style={styles.infoIconWrap}>
-              <Ionicons name={f.icon} size={16} color={ACCENT} />
-            </View>
-            <View>
-              <Text style={[styles.infoLabel, { color: mutedColor }]}>{f.label}</Text>
-              <Text style={[styles.infoValue, { color: textColor }]}>{f.value}</Text>
-            </View>
+            {user?.phone && (
+              <View style={[styles.contactHighlight, { backgroundColor: ACCENT + '15' }]}>
+                <Ionicons name="call" size={12} color={ACCENT} />
+                <Text style={[styles.contactHighlightText, { color: ACCENT }]} numberOfLines={1}>{user.phone}</Text>
+              </View>
+            )}
           </View>
-        ))}
+
+          <View style={styles.headerNameRow}>
+            <Text style={[styles.profileName, { color: textColor }]} numberOfLines={1}>{user?.fullName || '—'}</Text>
+            <Text style={[styles.profileHandle, { color: mutedColor }]} numberOfLines={1}>@{user?.username || '—'}</Text>
+          </View>
+        </View>
       </View>
 
       {/* Connections */}
@@ -214,6 +171,13 @@ export default function ProfileScreen() {
             )
         }
       </View>
+
+      <CricketStatsSection
+        cricket={cricket}
+        loading={loadingProfile}
+        isDark={isDark}
+        extraChips={[{ label: 'Friends', value: loadingConn ? '…' : String(connections.length), icon: 'people-outline', color: ACCENT }]}
+      />
     </ScrollView>
   )
 }
@@ -222,55 +186,79 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingBottom: 40 },
 
-  // ── Profile hero ──
-  heroCard: {
-    alignItems: 'center',
-    paddingTop: 28,
-    paddingBottom: 36,
-    paddingHorizontal: 20,
-  },
-  heroAvatar: { position: 'relative', marginBottom: 14 },
-  avatar: {
-    width: 90, height: 90, borderRadius: 45,
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)',
-  },
-  avatarFallback: {
-    width: 90, height: 90, borderRadius: 45,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)',
-  },
-  avatarInitials: { fontSize: 32, fontFamily: 'Poppins_700Bold', color: '#fff' },
-  heroBadge: {
-    position: 'absolute', bottom: 2, right: 2,
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: '#fff',
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 3, elevation: 3,
-  },
-  heroName: { fontSize: 20, fontFamily: 'Poppins_700Bold', color: '#fff', marginBottom: 4 },
-  heroHandle: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 8 },
-  heroLocation: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  heroLocationText: { fontSize: 12, color: 'rgba(255,255,255,0.75)' },
-
-  // ── Stats ──
-  statsRow: {
-    flexDirection: 'row',
+  // ── Profile header ──
+  profileHeader: {
     marginHorizontal: 14,
-    marginTop: -20,
-    borderRadius: 18,
-    paddingVertical: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 6,
+    marginTop: 14,
     marginBottom: 14,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  statItem: { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  statValue: { fontSize: 20, fontFamily: 'Poppins_700Bold', marginBottom: 2 },
-  statLabel: { fontSize: 11 },
-  statDivider: { width: 1, marginVertical: 8 },
+  coverBanner: {
+    height: 58,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroDecorCircle1: {
+    position: 'absolute', top: -40, right: -30,
+    width: 110, height: 110, borderRadius: 55,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroDecorCircle2: {
+    position: 'absolute', bottom: -45, left: -35,
+    width: 110, height: 110, borderRadius: 55,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerBody: { paddingHorizontal: 16, paddingBottom: 14 },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  headerAvatarWrap: {
+    marginTop: -28,
+    borderRadius: 32, borderWidth: 3,
+  },
+  headerAvatar: { width: 60, height: 60, borderRadius: 30 },
+  headerAvatarFallback: {
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: ACCENT,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  avatarInitials: { fontSize: 21, fontFamily: 'Poppins_700Bold', color: '#fff' },
+
+  // ── Banner location chip (top-right, on red gradient) ──
+  bannerLocationChip: {
+    position: 'absolute', top: 10, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    maxWidth: 160,
+  },
+  bannerLocationText: { fontSize: 11.5, fontFamily: 'Poppins_500Medium', color: '#fff' },
+
+  // ── Contact highlight chip (top-right, on white body) ──
+  contactHighlight: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 14, marginTop: 8,
+    maxWidth: 160,
+  },
+  contactHighlightText: { fontSize: 11.5, fontFamily: 'Poppins_600SemiBold' },
+
+  // ── Name row ──
+  headerNameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 10,
+  },
+  profileName: { fontSize: 16, fontFamily: 'Poppins_700Bold', flexShrink: 1 },
+  profileHandle: { fontSize: 12.5 },
 
   // ── Card ──
   card: {
@@ -294,38 +282,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 14,
   },
-
-  // ── Sport rows ──
-  sportRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 11, borderBottomWidth: 1,
-  },
-  sportEmojiWrap: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: ACCENT + '12',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  sportEmoji: { fontSize: 20 },
-  sportName: { fontSize: 14, fontFamily: 'Poppins_600SemiBold', marginBottom: 2 },
-  sportRole: { fontSize: 11.5 },
-  skillBadge: {
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 20, borderWidth: 1,
-  },
-  skillBadgeText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
-
-  // ── Info rows ──
-  infoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 11, borderBottomWidth: 1,
-  },
-  infoIconWrap: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: ACCENT + '12',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  infoLabel: { fontSize: 11, marginBottom: 2 },
-  infoValue: { fontSize: 13.5, fontFamily: 'Poppins_600SemiBold' },
 
   // ── Connections ──
   emptyConn: { alignItems: 'center', paddingVertical: 16 },

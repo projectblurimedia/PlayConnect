@@ -14,6 +14,7 @@ import connectionRoutes from './routes/connectionRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import messageRoutes from './routes/messageRoutes.js'
 import teamRoutes from './routes/teamRoutes.js'
+import matchRoutes from './routes/matchRoutes.js'
 
 dotenv.config()
 const app = express()
@@ -32,6 +33,7 @@ app.use('/api/connections', connectionRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/teams', teamRoutes)
+app.use('/api/matches', matchRoutes)
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 
@@ -39,6 +41,8 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }))
 const io = new SocketServer(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
 })
+
+app.set('io', io)
 
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token
@@ -116,6 +120,14 @@ io.on('connection', (socket) => {
     } catch (err) {
       console.error('mark_read error:', err.message)
     }
+  })
+
+  socket.on('join_match_room', ({ matchId }) => {
+    if (matchId) socket.join(`match:${matchId}`)
+  })
+
+  socket.on('leave_match_room', ({ matchId }) => {
+    if (matchId) socket.leave(`match:${matchId}`)
   })
 
   socket.on('disconnect', () => {

@@ -223,6 +223,7 @@ export default function TabsLayout() {
   const theme = useSelector(state => state.user.theme)
   const isDark = theme === 'dark'
   const router = useRouter()
+  const insets = useSafeAreaInsets()
 
   const loadNotifCount = useCallback(async () => {
     try {
@@ -250,7 +251,11 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarActiveTintColor: ACCENT,
           tabBarInactiveTintColor: isDark ? '#666' : '#888',
-          tabBarStyle: [styles.tabBar, isDark && styles.tabBarDark],
+          tabBarStyle: [
+            styles.tabBar,
+            isDark && styles.tabBarDark,
+            { height: 60 + insets.bottom, paddingBottom: 6 + insets.bottom },
+          ],
           tabBarLabelStyle: { fontFamily: 'Poppins_600SemiBold', fontSize: 10 },
         }}
       >

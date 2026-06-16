@@ -628,7 +628,7 @@ export default function ChatScreen() {
             </View>
 
             {connected !== false && (
-              <View style={[styles.inputRow, { backgroundColor: inputBg, borderTopColor: inputBorder }]}>
+              <View style={[styles.inputRow, { backgroundColor: inputBg, borderTopColor: inputBorder, paddingBottom: 10 + insets.bottom }]}>
                 <TextInput
                   style={[styles.input, {
                     color: textColor,

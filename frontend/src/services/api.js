@@ -245,7 +245,7 @@ export const searchTeams = async (q) => {
   return res.data
 }
 
-// ─── Ground Slots & Bookings ──────────────────────────────────────────────────
+// ─── Ground Availability & Bookings ───────────────────────────────────────────
 
 export const getGroundDetail = async (groundId) => {
   const res = await api.get(`/api/grounds/${groundId}`)
@@ -263,35 +263,79 @@ export const getMyBookings = async (filter) => {
   return res.data
 }
 
-export const createGroundSlots = async (groundId, payload) => {
-  const res = await api.post(`/api/grounds/${groundId}/slots`, payload)
-  return res.data
-}
-
-export const getGroundSlots = async (groundId, { date, sport } = {}) => {
+// Returns { ground, bookings, availableSlots } for a given date
+export const getGroundAvailability = async (groundId, { date } = {}) => {
   const params = new URLSearchParams()
   if (date) params.append('date', date)
-  if (sport) params.append('sport', sport)
-  const res = await api.get(`/api/grounds/${groundId}/slots?${params}`)
+  const res = await api.get(`/api/grounds/${groundId}/availability?${params}`)
   return res.data
 }
 
-export const deleteGroundSlot = async (groundId, slotId) => {
-  const res = await api.delete(`/api/grounds/${groundId}/slots/${slotId}`)
+// payload: { sport, date, startTime, endTime } — "HH:MM" on the 30-min grid
+export const createGroundBooking = async (groundId, payload) => {
+  const res = await api.post(`/api/grounds/${groundId}/bookings`, payload)
   return res.data
 }
 
-export const updateGroundSlotStatus = async (groundId, slotId, status) => {
-  const res = await api.put(`/api/grounds/${groundId}/slots/${slotId}/status`, { status })
+export const cancelGroundBooking = async (groundId, bookingId) => {
+  const res = await api.delete(`/api/grounds/${groundId}/bookings/${bookingId}`)
   return res.data
 }
 
-export const bookGroundSlot = async (groundId, slotId) => {
-  const res = await api.post(`/api/grounds/${groundId}/slots/${slotId}/book`)
+// payload: { date, startTime, endTime } — owner blocks a time range
+export const createGroundBlock = async (groundId, payload) => {
+  const res = await api.post(`/api/grounds/${groundId}/blocks`, payload)
   return res.data
 }
 
-export const cancelGroundBooking = async (groundId, slotId) => {
-  const res = await api.delete(`/api/grounds/${groundId}/slots/${slotId}/book`)
+export const deleteGroundBlock = async (groundId, blockId) => {
+  const res = await api.delete(`/api/grounds/${groundId}/blocks/${blockId}`)
+  return res.data
+}
+
+export const blockGroundDay = async (groundId, date) => {
+  const res = await api.post(`/api/grounds/${groundId}/block-day`, { date })
+  return res.data
+}
+
+// ─── Matches ──────────────────────────────────────────────────────────────────
+
+export const createMatch = async (payload) => {
+  const res = await api.post('/api/matches', payload)
+  return res.data
+}
+
+export const getLiveMatches = async () => {
+  const res = await api.get('/api/matches/live')
+  return res.data
+}
+
+export const getRecentMatches = async () => {
+  const res = await api.get('/api/matches/recent')
+  return res.data
+}
+
+export const getMatch = async (matchId) => {
+  const res = await api.get(`/api/matches/${matchId}`)
+  return res.data
+}
+
+export const recordBall = async (matchId, payload) => {
+  const res = await api.post(`/api/matches/${matchId}/ball`, payload)
+  return res.data
+}
+
+export const setMatchPlayers = async (matchId, payload) => {
+  const res = await api.post(`/api/matches/${matchId}/set-players`, payload)
+  return res.data
+}
+
+export const undoLastBall = async (matchId) => {
+  const res = await api.post(`/api/matches/${matchId}/undo`, {})
+  return res.data
+}
+
+export const abandonMatch = async (matchId, payload) => {
+  const res = await api.post(`/api/matches/${matchId}/abandon`, payload)
   return res.data
 }
