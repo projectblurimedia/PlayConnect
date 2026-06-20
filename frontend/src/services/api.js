@@ -339,3 +339,41 @@ export const abandonMatch = async (matchId, payload) => {
   const res = await api.post(`/api/matches/${matchId}/abandon`, payload)
   return res.data
 }
+
+// ─── Posts / Feed ────────────────────────────────────────────────────────────
+export const getFeed = async (page = 1, type = null) => {
+  const params = new URLSearchParams({ page })
+  if (type) params.append('type', type)
+  const res = await api.get(`/api/posts/feed?${params}`)
+  return res.data
+}
+
+export const createPost = async (payload) => {
+  const res = await api.post('/api/posts', payload)
+  return res.data
+}
+
+export const getUserPosts = async (userId) => {
+  const res = await api.get(`/api/posts/user/${userId}`)
+  return res.data
+}
+
+export const togglePostLike = async (postId) => {
+  const res = await api.post(`/api/posts/${postId}/like`, {})
+  return res.data
+}
+
+export const getPostComments = async (postId) => {
+  const res = await api.get(`/api/posts/${postId}/comments`)
+  return res.data
+}
+
+export const addPostComment = async (postId, text) => {
+  const res = await api.post(`/api/posts/${postId}/comments`, { text })
+  return res.data
+}
+
+export const deletePost = async (postId) => {
+  const res = await api.delete(`/api/posts/${postId}`)
+  return res.data
+}

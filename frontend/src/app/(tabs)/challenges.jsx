@@ -28,20 +28,19 @@ export default function ChallengesScreen() {
   const mutedColor = isDark ? '#aaa' : '#888'
 
   return (
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      {/* Header with back button */}
+      <View style={[styles.header, { backgroundColor: ACCENT }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Challenges</Text>
+      </View>
+
     <ScrollView
-      style={[styles.container, { backgroundColor: bg }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Page heading */}
-      <View style={[styles.headCard, { backgroundColor: cardBg }]}>
-        <Text style={[styles.pageTitle, { color: textColor }]}>
-          Your <Text style={styles.pageTitleAccent}>Challenges</Text>
-        </Text>
-        <Text style={[styles.pageSub, { color: mutedColor }]}>
-          Issue or accept real-world sport battles
-        </Text>
-      </View>
 
       {/* Stats row */}
       <Text style={styles.sectionLabel}>YOUR STATS</Text>
@@ -113,27 +112,20 @@ export default function ChallengesScreen() {
         </View>
       </View>
     </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 14, paddingBottom: 40 },
-
-  // ── Heading card ──
-  headCard: {
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingTop: 52, paddingBottom: 14, paddingHorizontal: 14,
   },
-  pageTitle: { fontSize: 22, fontFamily: 'Poppins_700Bold', marginBottom: 4, lineHeight: 28 },
-  pageTitleAccent: { color: ACCENT, fontFamily: 'Poppins_800ExtraBold' },
-  pageSub: { fontSize: 12.5, lineHeight: 18 },
+  headerBack: { padding: 4 },
+  headerTitle: { color: '#fff', fontSize: 18, fontFamily: 'Poppins_700Bold' },
+
+  content: { padding: 14, paddingBottom: 40 },
 
   // ── Section label ──
   sectionLabel: {

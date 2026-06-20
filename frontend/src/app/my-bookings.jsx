@@ -83,6 +83,7 @@ export default function MyBookingsScreen() {
   const renderBooking = ({ item: b }) => {
     const hrs = (new Date(b.endTime) - new Date(b.startTime)) / 3600000
     const total = Math.round((b.priceOverride ?? b.ground?.pricePerHour) * hrs)
+    const isUpcoming = tab === 'upcoming'
 
     return (
       <TouchableOpacity
@@ -90,67 +91,59 @@ export default function MyBookingsScreen() {
         onPress={() => router.push(`/ground/${b.groundId}`)}
         activeOpacity={0.85}
       >
+        {/* Left accent strip */}
+        <View style={[styles.cardAccent, { backgroundColor: isUpcoming ? ACCENT : '#9ca3af' }]} />
+
         {/* Ground thumbnail */}
         <View style={styles.thumbWrap}>
           {b.ground?.photos?.[0]
             ? <Image source={{ uri: b.ground.photos[0] }} style={styles.thumb} resizeMode="cover" />
             : (
               <View style={[styles.thumbFallback, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
-                <Ionicons name="location" size={28} color="#ccc" />
+                <Ionicons name="location" size={24} color="#ccc" />
               </View>
             )
           }
         </View>
 
         <View style={styles.cardBody}>
+          {/* Row 1: Name + Sport emoji */}
           <View style={styles.cardTop}>
             <Text style={[styles.groundName, { color: textColor }]} numberOfLines={1}>
               {b.ground?.name}
             </Text>
-            <View style={[styles.sportBadge, { backgroundColor: ACCENT + '15' }]}>
-              <Text style={[styles.sportText, { color: ACCENT }]}>{SPORT_EMOJI[b.sport]} {b.sport}</Text>
-            </View>
+            <Text style={styles.sportEmoji}>{SPORT_EMOJI[b.sport]}</Text>
           </View>
 
+          {/* Row 2: Location */}
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={13} color={mutedColor} />
+            <Ionicons name="location-outline" size={11} color={mutedColor} />
             <Text style={[styles.infoText, { color: mutedColor }]} numberOfLines={1}>
               {' '}{b.ground?.city}
             </Text>
           </View>
 
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={13} color={mutedColor} />
-            <Text style={[styles.infoText, { color: mutedColor }]}>
-              {' '}{fmtDate(b.startTime)}
-            </Text>
-          </View>
+          {/* Row 3: Date · Time */}
+          <Text style={[styles.infoText, { color: mutedColor }]} numberOfLines={1}>
+            {fmtDate(b.startTime)}{'  ·  '}{fmtTime(b.startTime)} – {fmtTime(b.endTime)}
+          </Text>
 
-          <View style={styles.infoRow}>
-            <Ionicons name="time-outline" size={13} color={mutedColor} />
-            <Text style={[styles.infoText, { color: mutedColor }]}>
-              {' '}{fmtTime(b.startTime)} – {fmtTime(b.endTime)}
-            </Text>
-          </View>
-
+          {/* Row 4: Price + Action */}
           <View style={styles.cardFooter}>
-            <View>
-              <Text style={[styles.totalLabel, { color: mutedColor }]}>Total</Text>
-              <Text style={[styles.totalAmount, { color: ACCENT }]}>₹{total}</Text>
-            </View>
-            {tab === 'upcoming' && (
-              <TouchableOpacity
-                style={[styles.cancelBtn, { borderColor }]}
-                onPress={() => handleCancel(b)}
-              >
-                <Text style={[styles.cancelBtnText, { color: mutedColor }]}>Cancel</Text>
-              </TouchableOpacity>
-            )}
-            {tab === 'past' && (
-              <View style={[styles.pastBadge, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0' }]}>
-                <Text style={[styles.pastBadgeText, { color: mutedColor }]}>Completed</Text>
-              </View>
-            )}
+            <Text style={[styles.totalAmount, { color: ACCENT }]}>₹{total}</Text>
+            {isUpcoming
+              ? (
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(b)}>
+                  <Ionicons name="close-circle-outline" size={13} color="#fff" />
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              )
+              : (
+                <View style={styles.completedBadge}>
+                  <Text style={styles.completedBadgeText}>✓ Completed</Text>
+                </View>
+              )
+            }
           </View>
         </View>
       </TouchableOpacity>
@@ -227,31 +220,35 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
 
   card: {
-    borderRadius: 18, overflow: 'hidden', flexDirection: 'row',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
+    borderRadius: 14, overflow: 'hidden', flexDirection: 'row',
+    height: 110,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2,
   },
-  thumbWrap: { width: 100 },
+  cardAccent: { width: 4, alignSelf: 'stretch' },
+  thumbWrap: { width: 88, alignSelf: 'stretch' },
   thumb: { width: '100%', height: '100%' },
   thumbFallback: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
 
-  cardBody: { flex: 1, padding: 12, gap: 4 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 },
-  groundName: { flex: 1, fontSize: 14, fontFamily: 'Poppins_700Bold' },
-  sportBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8 },
-  sportText: { fontSize: 10, fontFamily: 'Poppins_600SemiBold' },
+  cardBody: { flex: 1, paddingVertical: 10, paddingHorizontal: 10, justifyContent: 'space-between' },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  groundName: { flex: 1, fontSize: 13, fontFamily: 'Poppins_700Bold', marginRight: 4 },
+  sportEmoji: { fontSize: 18 },
 
   infoRow: { flexDirection: 'row', alignItems: 'center' },
-  infoText: { fontSize: 11.5 },
+  infoText: { fontSize: 11, fontFamily: 'Poppins_400Regular' },
 
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  totalLabel: { fontSize: 10, fontFamily: 'Poppins_500Medium' },
-  totalAmount: { fontSize: 18, fontFamily: 'Poppins_700Bold' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  totalAmount: { fontSize: 17, fontFamily: 'Poppins_700Bold' },
 
-  cancelBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 10, borderWidth: 1.5 },
-  cancelBtnText: { fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
-  pastBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  pastBadgeText: { fontSize: 11, fontFamily: 'Poppins_500Medium' },
+  cancelBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
+    backgroundColor: '#ef4444',
+  },
+  cancelBtnText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: '#fff' },
+  completedBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: '#22c55e18' },
+  completedBadgeText: { fontSize: 10, fontFamily: 'Poppins_500Medium', color: '#22c55e' },
 
   emptyBox: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
   emptyTitle: { fontSize: 15, fontFamily: 'Poppins_600SemiBold', marginTop: 14 },

@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
   View, Text as RNText, ScrollView, StyleSheet, Image,
-  TouchableOpacity, ActivityIndicator, RefreshControl,
+  TouchableOpacity, ActivityIndicator, RefreshControl, Dimensions,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSelector } from 'react-redux'
 import { useRouter } from 'expo-router'
-import { getConnections, getPlayerProfile } from '../../services/api'
+import { getConnections, getPlayerProfile, getUserPosts } from '../../services/api'
 import CricketStatsSection from '../../components/CricketStatsSection'
+
+const { width: SCREEN_W } = Dimensions.get('window')
+const GRID_ITEM = (SCREEN_W - 28 - 36 - 4) / 3
 
 const ACCENT = '#C8102E'
 
@@ -27,6 +30,8 @@ export default function ProfileScreen() {
   const [loadingConn, setLoadingConn] = useState(true)
   const [profile, setProfile] = useState(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
+  const [posts, setPosts] = useState([])
+  const [loadingPosts, setLoadingPosts] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const bg = isDark ? '#111' : '#efefef'
@@ -57,12 +62,25 @@ export default function ProfileScreen() {
     }
   }, [user?.id])
 
+  const loadPosts = useCallback(async () => {
+    if (!user?.id) { setLoadingPosts(false); return }
+    try {
+      const data = await getUserPosts(user.id)
+      setPosts(data.posts || [])
+    } catch {
+      setPosts([])
+    } finally {
+      setLoadingPosts(false)
+    }
+  }, [user?.id])
+
   useEffect(() => { loadConnections() }, [loadConnections])
   useEffect(() => { loadProfile() }, [loadProfile])
+  useEffect(() => { loadPosts() }, [loadPosts])
 
   const onRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([loadConnections(), loadProfile()])
+    await Promise.all([loadConnections(), loadProfile(), loadPosts()])
     setRefreshing(false)
   }
 
@@ -178,6 +196,59 @@ export default function ProfileScreen() {
         isDark={isDark}
         extraChips={[{ label: 'Friends', value: loadingConn ? '…' : String(connections.length), icon: 'people-outline', color: ACCENT }]}
       />
+
+      {/* My Posts Grid */}
+      <View style={[styles.card, { backgroundColor: cardBg }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <Text style={styles.sectionLabel}>
+            MY POSTS{!loadingPosts ? ` (${posts.length})` : ''}
+          </Text>
+          <TouchableOpacity onPress={() => router.push('/create-post')} style={styles.createPostBtn}>
+            <Ionicons name="add" size={14} color="#fff" />
+            <Text style={styles.createPostBtnText}>New Post</Text>
+          </TouchableOpacity>
+        </View>
+        {loadingPosts
+          ? <ActivityIndicator color={ACCENT} style={{ paddingVertical: 20 }} />
+          : posts.length === 0
+            ? (
+              <TouchableOpacity style={styles.emptyPosts} onPress={() => router.push('/create-post')} activeOpacity={0.8}>
+                <Ionicons name="camera-outline" size={32} color={ACCENT} />
+                <Text style={[styles.emptyPostsText, { color: mutedColor }]}>Share your first photo or video</Text>
+              </TouchableOpacity>
+            )
+            : (
+              <View style={styles.postsGrid}>
+                {posts.map(p => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.postThumb, { width: GRID_ITEM, height: GRID_ITEM }]}
+                    activeOpacity={0.85}
+                  >
+                    {p.type === 'PHOTO'
+                      ? <Image source={{ uri: p.mediaUrl }} style={styles.postThumbImg} />
+                      : (
+                        <View style={[styles.postThumbImg, { backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' }]}>
+                          {(p.thumbnailUrl || p.mediaUrl)
+                            ? <Image source={{ uri: p.thumbnailUrl || p.mediaUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                            : null
+                          }
+                          <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                            <Ionicons name={p.type === 'REEL' ? 'film' : 'play'} size={20} color="#fff" />
+                          </View>
+                        </View>
+                      )
+                    }
+                    <View style={styles.postThumbLikes}>
+                      <Ionicons name="heart" size={10} color="#fff" />
+                      <Text style={styles.postThumbLikesText}>{p.likesCount}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )
+        }
+      </View>
     </ScrollView>
   )
 }
@@ -307,4 +378,21 @@ const styles = StyleSheet.create({
   friendAvatarText: { color: '#fff', fontSize: 18, fontFamily: 'Poppins_700Bold' },
   friendName: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', textAlign: 'center', marginBottom: 1 },
   friendHandle: { fontSize: 10, textAlign: 'center' },
+
+  // ── Posts grid ──
+  createPostBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: ACCENT, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
+  },
+  createPostBtnText: { color: '#fff', fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
+  emptyPosts: { alignItems: 'center', paddingVertical: 24, gap: 8 },
+  emptyPostsText: { fontSize: 12, textAlign: 'center' },
+  postsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  postThumb: { borderRadius: 8, overflow: 'hidden' },
+  postThumbImg: { width: '100%', height: '100%' },
+  postThumbLikes: {
+    position: 'absolute', bottom: 4, left: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+  },
+  postThumbLikesText: { color: '#fff', fontSize: 9, fontFamily: 'Poppins_600SemiBold' },
 })

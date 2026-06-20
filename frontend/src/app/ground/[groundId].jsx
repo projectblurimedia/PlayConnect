@@ -214,8 +214,14 @@ export default function GroundDetailScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: bg }}>
-        <ActivityIndicator color={ACCENT} size="large" />
+      <View style={{ flex: 1, backgroundColor: bg }}>
+        <View style={[styles.header, { backgroundColor: ACCENT }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Ground Details</Text>
+        </View>
+        <ActivityIndicator color={ACCENT} style={{ marginTop: 48 }} />
       </View>
     )
   }
@@ -245,9 +251,20 @@ export default function GroundDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
+      {/* Header — same style as My Bookings */}
+      <View style={[styles.header, { backgroundColor: ACCENT }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>{ground.name}</Text>
+        {ground.isVerified && (
+          <Ionicons name="checkmark-circle" size={18} color="#4ade80" />
+        )}
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* Hero photo */}
+        {/* Ground photo — inside scroll, below header */}
         <View style={styles.heroWrap}>
           {ground.photos?.[0]
             ? <Image source={{ uri: ground.photos[0] }} style={styles.heroImg} resizeMode="cover" />
@@ -258,18 +275,9 @@ export default function GroundDetailScreen() {
               </View>
             )
           }
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-          </TouchableOpacity>
           <View style={styles.heroPriceBadge}>
             <Text style={styles.heroPriceText}>₹{ground.pricePerHour}/hr</Text>
           </View>
-          {ground.isVerified && (
-            <View style={styles.heroVerifiedBadge}>
-              <Ionicons name="checkmark-circle" size={12} color="#22c55e" />
-              <Text style={styles.heroVerifiedText}>Verified</Text>
-            </View>
-          )}
         </View>
 
         <View style={{ padding: 14, gap: 14 }}>
@@ -444,6 +452,8 @@ export default function GroundDetailScreen() {
                         key={item.id}
                         style={[styles.slotRow, { backgroundColor: bgTint }]}
                         onPress={() => { if (isOwner || isMyBooking) setViewBooking(item) }}
+                        onLongPress={() => { if (isMyBooking && !isPast) handleCancel(item) }}
+                        delayLongPress={500}
                         activeOpacity={isOwner || isMyBooking ? 0.75 : 1}
                       >
                         <View style={[styles.slotAccentBar, { backgroundColor: accentC }]} />
@@ -634,17 +644,18 @@ export default function GroundDetailScreen() {
                 </View>
 
                 {viewBooking.status === 'BOOKED' && viewBooking.bookedById === myUser?.id && new Date(viewBooking.startTime) > new Date() && (
-                  <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#ef4444', marginBottom: 10 }]} onPress={() => handleCancel(viewBooking)}>
-                    <Text style={styles.btnPrimaryText}>Cancel Booking</Text>
+                  <TouchableOpacity style={styles.cancelBookingBtn} onPress={() => handleCancel(viewBooking)}>
+                    <Ionicons name="close-circle" size={17} color="#fff" />
+                    <Text style={styles.cancelBookingBtnText}>Cancel Booking</Text>
                   </TouchableOpacity>
                 )}
               </>
             )}
             <TouchableOpacity
-              style={[styles.btnSecondary, { borderColor, marginTop: 4 }]}
+              style={[styles.closeBtn, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0', marginTop: 4 }]}
               onPress={() => setViewBooking(null)}
             >
-              <Text style={[styles.btnSecondaryText, { color: textColor }]}>Close</Text>
+              <Text style={[styles.closeBtnText, { color: textColor }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -654,28 +665,22 @@ export default function GroundDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  heroWrap: { position: 'relative', height: 220 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingTop: 52, paddingBottom: 14, paddingHorizontal: 14,
+  },
+  headerBack: { padding: 4 },
+  headerTitle: { flex: 1, color: '#fff', fontSize: 16, fontFamily: 'Poppins_700Bold' },
+
+  heroWrap: { position: 'relative', height: 210 },
   heroImg: { width: '100%', height: '100%' },
   heroFallback: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
-  backBtn: {
-    position: 'absolute', top: 44, left: 14,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center', alignItems: 'center',
-  },
   heroPriceBadge: {
     position: 'absolute', bottom: 12, left: 14,
     backgroundColor: '#C8102E', borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 4,
   },
   heroPriceText: { color: '#fff', fontSize: 13, fontFamily: 'Poppins_700Bold' },
-  heroVerifiedBadge: {
-    position: 'absolute', top: 44, right: 14,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4,
-  },
-  heroVerifiedText: { fontSize: 11, color: '#22c55e', fontFamily: 'Poppins_600SemiBold' },
 
   card: {
     borderRadius: 18, padding: 16,
@@ -772,6 +777,17 @@ const styles = StyleSheet.create({
     alignItems: 'center', backgroundColor: '#C8102E',
   },
   btnPrimaryText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins_700Bold' },
+
+  cancelBookingBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#ef4444',
+    borderRadius: 14, paddingVertical: 14, marginBottom: 10,
+  },
+  cancelBookingBtnText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins_700Bold' },
+  closeBtn: {
+    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+  },
+  closeBtnText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
 
   // Time picker fields (booking sheet)
   pickerLabel: { fontSize: 10, fontFamily: 'Poppins_700Bold', letterSpacing: 0.8, marginBottom: 6 },

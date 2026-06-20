@@ -11,7 +11,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native'
-import { Tabs, useRouter } from 'expo-router'
+import { Tabs, useRouter, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -77,6 +77,11 @@ const MENU_ITEMS = [
   { icon: 'add-circle-outline', label: 'Create Match', route: '/create-match' },
   { icon: 'enter-outline', label: 'Join Match', route: '/join-match' },
   { icon: 'trophy-outline', label: 'Tournaments', route: '/tournaments' },
+  { icon: 'flash-outline', label: 'Challenges', route: '/challenges' },
+]
+
+const FEED_MENU_ITEMS = [
+  { icon: 'camera-outline', label: 'Create Post', route: '/create-post' },
 ]
 
 const TEAM_MENU_ITEMS = [
@@ -163,6 +168,18 @@ function Sidebar({ visible, onClose }) {
           ))}
 
           <View style={[styles.sidebarDivider, { backgroundColor: dividerColor }]} />
+          <Text style={[styles.sidebarSectionLabel, { color: mutedColor }]}>FEED</Text>
+          {FEED_MENU_ITEMS.map(item => (
+            <TouchableOpacity key={item.label} style={styles.sidebarItem} onPress={() => navigate(item.route)}>
+              <View style={styles.sidebarItemLeft}>
+                <Ionicons name={item.icon} size={22} color={isDark ? '#fff' : '#333'} />
+                <Text style={[styles.sidebarItemText, { color: isDark ? '#fff' : '#333' }]}>{item.label}</Text>
+              </View>
+              <Ionicons name="chevron-forward-outline" size={18} color={mutedColor} />
+            </TouchableOpacity>
+          ))}
+
+          <View style={[styles.sidebarDivider, { backgroundColor: dividerColor }]} />
           <Text style={[styles.sidebarSectionLabel, { color: mutedColor }]}>TEAMS</Text>
           {TEAM_MENU_ITEMS.map(item => (
             <TouchableOpacity key={item.label} style={styles.sidebarItem} onPress={() => navigate(item.route)}>
@@ -224,6 +241,9 @@ export default function TabsLayout() {
   const isDark = theme === 'dark'
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const pathname = usePathname()
+
+  const hideShell = pathname === '/challenges'
 
   const loadNotifCount = useCallback(async () => {
     try {
@@ -241,11 +261,13 @@ export default function TabsLayout() {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#111' : '#fff' }]}>
       <StatusBar backgroundColor={ACCENT} barStyle="light-content" />
-      <AppHeader
-        onMenuPress={() => setSidebarOpen(true)}
-        onNotifPress={() => router.push('/notifications')}
-        notifCount={notifCount}
-      />
+      {!hideShell && (
+        <AppHeader
+          onMenuPress={() => setSidebarOpen(true)}
+          onNotifPress={() => router.push('/notifications')}
+          notifCount={notifCount}
+        />
+      )}
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -267,17 +289,10 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="challenges"
+          name="feed"
           options={{
-            title: 'Challenges',
-            tabBarIcon: ({ color, size }) => <Ionicons name="trophy" size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" size={size} color={color} />,
+            title: 'Feed',
+            tabBarIcon: ({ color, size }) => <Ionicons name="play-circle" size={size} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -288,13 +303,20 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
+          name="messages"
+          options={{
+            title: 'Messages',
+            tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles" size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="profile"
           options={{
             title: 'Profile',
             tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
           }}
         />
-        <Tabs.Screen name="feed" options={{ href: null }} />
+        <Tabs.Screen name="challenges" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       </Tabs>
       <Sidebar visible={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </View>

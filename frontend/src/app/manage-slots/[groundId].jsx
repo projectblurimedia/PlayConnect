@@ -634,24 +634,24 @@ export default function ManageSlotsScreen() {
                 </View>
 
                 {viewItem.status === 'BOOKED' && (
-                  <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#ef4444', marginBottom: 10 }]} onPress={() => handleCancelBooking(viewItem)}>
-                    <Ionicons name="close-circle-outline" size={16} color="#fff" />
-                    <Text style={styles.btnPrimaryText}>Cancel Booking (No-show)</Text>
+                  <TouchableOpacity style={styles.cancelBookingBtn} onPress={() => handleCancelBooking(viewItem)}>
+                    <Ionicons name="close-circle" size={17} color="#fff" />
+                    <Text style={styles.cancelBookingBtnText}>Cancel Booking (No-show)</Text>
                   </TouchableOpacity>
                 )}
                 {viewItem.status === 'BLOCKED' && (
-                  <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#22c55e', marginBottom: 10 }]} onPress={() => handleRemoveBlock(viewItem)}>
-                    <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
-                    <Text style={styles.btnPrimaryText}>Remove Block</Text>
+                  <TouchableOpacity style={styles.removeBlockBtn} onPress={() => handleRemoveBlock(viewItem)}>
+                    <Ionicons name="checkmark-circle" size={17} color="#fff" />
+                    <Text style={styles.removeBlockBtnText}>Remove Block</Text>
                   </TouchableOpacity>
                 )}
               </>
             )}
             <TouchableOpacity
-              style={[styles.btnSecondary, { borderColor, marginTop: 4 }]}
+              style={[styles.closeBtn, { backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0', marginTop: 4 }]}
               onPress={() => setViewItem(null)}
             >
-              <Text style={[styles.btnSecondaryText, { color: textColor }]}>Close</Text>
+              <Text style={[styles.closeBtnText, { color: textColor }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -743,6 +743,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#C8102E',
   },
   btnPrimaryText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins_700Bold' },
+
+  cancelBookingBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#ef4444',
+    borderRadius: 14, paddingVertical: 14, marginBottom: 10,
+  },
+  cancelBookingBtnText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins_700Bold' },
+  removeBlockBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#22c55e',
+    borderRadius: 14, paddingVertical: 14, marginBottom: 10,
+  },
+  removeBlockBtnText: { color: '#fff', fontSize: 14, fontFamily: 'Poppins_700Bold' },
+  closeBtn: { borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  closeBtnText: { fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
 
   // Time picker fields
   pickerLabel: { fontSize: 10, fontFamily: 'Poppins_700Bold', letterSpacing: 0.8, marginBottom: 6 },
