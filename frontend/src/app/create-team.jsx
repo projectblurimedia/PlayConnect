@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useSelector } from 'react-redux'
 import { createTeam } from '../services/api'
 
@@ -69,12 +70,12 @@ export default function CreateTeamScreen() {
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a team name')
+      showAlert('Error', 'Please enter a team name')
       return
     }
     const max = parseInt(maxPlayers, 10)
     if (isNaN(max) || max < 2 || max > 15) {
-      Alert.alert('Error', 'Max players must be between 2 and 15')
+      showAlert('Error', 'Max players must be between 2 and 15')
       return
     }
 
@@ -89,7 +90,7 @@ export default function CreateTeamScreen() {
       setCreatedCode(data.team.inviteCode)
       setCreatedTeamId(data.team.id)
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.error || 'Failed to create team')
+      showAlert('Error', err?.response?.data?.error || 'Failed to create team')
     } finally {
       setLoading(false)
     }

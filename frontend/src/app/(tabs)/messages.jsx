@@ -5,6 +5,7 @@ import {
   TextInput as RNTextInput, Animated,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useSelector } from 'react-redux'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { io } from 'socket.io-client'
@@ -211,7 +212,7 @@ export default function MessagesScreen() {
   }
 
   const handleLongPress = (item) => {
-    Alert.alert(
+    showAlert(
       item.user.fullName,
       'Choose an action',
       [
@@ -299,7 +300,7 @@ export default function MessagesScreen() {
             onLongPress={() => handleLongPress(item)}
           />
         )}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} colors={[ACCENT]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} colors={[ACCENT, '#FF6B35', '#7C3AED']} progressBackgroundColor="#fff" />}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIconBg}>

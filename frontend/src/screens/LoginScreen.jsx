@@ -15,6 +15,7 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons, AntDesign } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useRouter } from 'expo-router'
 import { useDispatch } from 'react-redux'
 import * as Google from 'expo-auth-session/providers/google'
@@ -63,7 +64,7 @@ export default function LoginScreen() {
     if (response.type === 'success') {
       handleGoogleToken(response.authentication?.accessToken)
     } else if (response.type === 'error') {
-      Alert.alert('Google Sign-In Failed', response.error?.message || 'Please try again.')
+      showAlert('Google Sign-In Failed', response.error?.message || 'Please try again.')
       setGoogleLoading(false)
     } else {
       setGoogleLoading(false)
@@ -78,7 +79,7 @@ export default function LoginScreen() {
         dispatch(setUser({ user: result.user, token: result.token }))
         router.replace('/home')
       } else if (result.needsRegistration) {
-        Alert.alert(
+        showAlert(
           'Account Not Found',
           `No PlayConnect account linked to ${result.googleInfo?.email}.\n\nPlease register first.`,
           [
@@ -87,10 +88,10 @@ export default function LoginScreen() {
           ],
         )
       } else {
-        Alert.alert('Sign-In Failed', result.error || 'Google sign-in failed.')
+        showAlert('Sign-In Failed', result.error || 'Google sign-in failed.')
       }
     } catch {
-      Alert.alert('Error', 'Could not complete Google sign-in. Please try again.')
+      showAlert('Error', 'Could not complete Google sign-in. Please try again.')
     } finally {
       setGoogleLoading(false)
     }
@@ -98,7 +99,7 @@ export default function LoginScreen() {
 
   const handleGooglePress = () => {
     if (GOOGLE_WEB_CLIENT_ID.startsWith('YOUR_')) {
-      Alert.alert(
+      showAlert(
         'Setup Required',
         '1. Go to console.cloud.google.com\n2. Create OAuth 2.0 credentials\n3. Replace the placeholder IDs at the top of LoginScreen.jsx',
       )
@@ -111,7 +112,7 @@ export default function LoginScreen() {
   // ── Email / Password login ───────────────────────────────────────────────
   const handleLogin = async () => {
     if (!identifier.trim() || !password) {
-      Alert.alert('Error', 'Please enter your email/phone and password')
+      showAlert('Error', 'Please enter your email/phone and password')
       return
     }
     setLoading(true)
@@ -121,10 +122,10 @@ export default function LoginScreen() {
         dispatch(setUser({ user: result.user, token: result.token }))
         router.replace('/home')
       } else {
-        Alert.alert('Login Failed', result.error || 'Invalid credentials')
+        showAlert('Login Failed', result.error || 'Invalid credentials')
       }
     } catch {
-      Alert.alert('Connection Error', 'Could not connect to the server.')
+      showAlert('Connection Error', 'Could not connect to the server.')
     } finally {
       setLoading(false)
     }

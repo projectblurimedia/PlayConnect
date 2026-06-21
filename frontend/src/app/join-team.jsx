@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useSelector } from 'react-redux'
 import { joinTeam } from '../services/api'
 
@@ -37,7 +38,7 @@ export default function JoinTeamScreen() {
   const handleJoin = async () => {
     const trimmed = code.trim().toUpperCase()
     if (trimmed.length < 6) {
-      Alert.alert('Error', 'Please enter a valid 6-character invite code')
+      showAlert('Error', 'Please enter a valid 6-character invite code')
       return
     }
 
@@ -46,7 +47,7 @@ export default function JoinTeamScreen() {
       const data = await joinTeam(trimmed)
       setJoined(data.team)
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.error || 'Failed to join team')
+      showAlert('Error', err?.response?.data?.error || 'Failed to join team')
     } finally {
       setLoading(false)
     }

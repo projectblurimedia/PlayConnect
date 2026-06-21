@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Modal, FlatList, Alert, Platform, StatusBar, Animated,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
@@ -770,7 +771,7 @@ function InningsBreakView({ match, onSetPlayers, isDark, isCreator }) {
     try {
       await onSetPlayers({ strikerBatsmanId: batsmen[0], nonStrikerBatsmanId: batsmen[1], currentBowlerId: bowler })
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.error || 'Failed to start 2nd innings')
+      showAlert('Error', err?.response?.data?.error || 'Failed to start 2nd innings')
     } finally {
       setSaving(false)
     }
@@ -1233,7 +1234,7 @@ export default function MatchScoringScreen() {
   // Load + socket
   useEffect(() => {
     if (!matchId) return
-    getMatch(matchId).then(d => setMatch(d.match)).catch(() => Alert.alert('Error', 'Failed to load match')).finally(() => setLoading(false))
+    getMatch(matchId).then(d => setMatch(d.match)).catch(() => showAlert('Error', 'Failed to load match')).finally(() => setLoading(false))
 
     const token = store.getState().user.token
     const socket = io(API_BASE_URL, { auth: { token }, transports: ['websocket'] })
@@ -1330,14 +1331,14 @@ export default function MatchScoringScreen() {
       .catch(err => {
         // Revert optimistic on error
         getMatch(matchId).then(d => setMatch(d.match)).catch(() => {})
-        Alert.alert('Error', err?.response?.data?.error || 'Failed to record ball')
+        showAlert('Error', err?.response?.data?.error || 'Failed to record ball')
       })
       .finally(() => setPendingScores(c => Math.max(0, c - 1)))
   }, [isCreator, matchId, applyOptimistic, enqueueRequest])
 
   const handleUndo = useCallback(async () => {
     if (submitting || !isCreator) return
-    Alert.alert('Undo Last Ball', 'This will reverse the last delivery. Continue?', [
+    showAlert('Undo Last Ball', 'This will reverse the last delivery. Continue?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Undo', style: 'destructive', onPress: async () => {
@@ -1346,7 +1347,7 @@ export default function MatchScoringScreen() {
             const data = await undoLastBall(matchId)
             setMatch(prev => mergeMatchUpdate(prev, data.match))
           } catch (err) {
-            Alert.alert('Error', err?.response?.data?.error || 'Failed to undo')
+            showAlert('Error', err?.response?.data?.error || 'Failed to undo')
           } finally {
             setSubmitting(false)
           }
@@ -1356,7 +1357,7 @@ export default function MatchScoringScreen() {
   }, [submitting, isCreator, matchId])
 
   const handleAbandon = useCallback((opt) => {
-    Alert.alert(
+    showAlert(
       'End Match',
       opt.winnerTeamId
         ? `Award the win to ${opt.title.replace(' wins', '')}? This cannot be undone.`
@@ -1371,7 +1372,7 @@ export default function MatchScoringScreen() {
               setMatch(prev => mergeMatchUpdate(prev, data.match))
               setShowAbandon(false)
             } catch (err) {
-              Alert.alert('Error', err?.response?.data?.error || 'Failed to end match')
+              showAlert('Error', err?.response?.data?.error || 'Failed to end match')
             } finally {
               setAbandoning(false)
             }
@@ -1397,7 +1398,7 @@ export default function MatchScoringScreen() {
     }).then(data => setMatch(data.match))
       .catch(err => {
         const msg = err?.response?.data?.error || 'Failed to change bowler'
-        Alert.alert('Cannot Change Bowler', msg)
+        showAlert('Cannot Change Bowler', msg)
       })
       .finally(() => {
         setSubmitting(false)
@@ -1426,7 +1427,7 @@ export default function MatchScoringScreen() {
     }).then(data => setMatch(data.match))
       .catch(err => {
         const msg = err?.response?.data?.error || 'Failed to change batsman'
-        Alert.alert('Cannot Change Batsman', msg)
+        showAlert('Cannot Change Batsman', msg)
       })
       .finally(() => setSubmitting(false))
   }, [matchId, match])
@@ -1450,7 +1451,7 @@ export default function MatchScoringScreen() {
       .then(data => setMatch(data.match))
       .catch(err => {
         getMatch(matchId).then(d => setMatch(d.match)).catch(() => {})
-        Alert.alert('Error', err?.response?.data?.error || 'Failed to swap strike')
+        showAlert('Error', err?.response?.data?.error || 'Failed to swap strike')
       })
   }, [isCreator, match, matchId, enqueueRequest])
 

@@ -118,7 +118,7 @@ export default function TeamsScreen() {
         data={teams}
         keyExtractor={t => t.id}
         contentContainerStyle={teams.length === 0 ? styles.emptyContainer : styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} colors={[ACCENT, '#FF6B35', '#7C3AED']} progressBackgroundColor="#fff" />}
         renderItem={({ item }) => (
           <TeamCard
             team={item}

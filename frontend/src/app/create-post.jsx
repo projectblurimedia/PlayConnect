@@ -4,6 +4,7 @@ import {
   TextInput, ScrollView, Alert, ActivityIndicator, Dimensions,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import * as ImagePicker from 'expo-image-picker'
@@ -50,7 +51,7 @@ export default function CreatePostScreen() {
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Allow access to your media library to pick content.')
+      showAlert('Permission needed', 'Allow access to your media library to pick content.')
       return
     }
 
@@ -72,7 +73,7 @@ export default function CreatePostScreen() {
   }
 
   const handlePost = async () => {
-    if (!media?.base64) return Alert.alert('No media', 'Please pick a photo or video first.')
+    if (!media?.base64) return showAlert('No media', 'Please pick a photo or video first.')
     if (!type) return
 
     setUploading(true)
@@ -84,11 +85,11 @@ export default function CreatePostScreen() {
         base64: media.base64,
         mimeType: media.mimeType,
       })
-      Alert.alert('Posted!', 'Your post is now live in the feed.', [
+      showAlert('Posted!', 'Your post is now live in the feed.', [
         { text: 'OK', onPress: () => router.back() },
       ])
     } catch (e) {
-      Alert.alert('Failed', e.response?.data?.error || 'Could not upload. Check your connection.')
+      showAlert('Failed', e.response?.data?.error || 'Could not upload. Check your connection.')
     } finally {
       setUploading(false)
     }

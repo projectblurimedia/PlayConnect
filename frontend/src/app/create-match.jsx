@@ -5,6 +5,7 @@ import {
   Platform, Alert, KeyboardAvoidingView, Animated,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
@@ -310,7 +311,7 @@ function MatchSetupModal({ visible, team1, team2, onClose, onStartMatch, isDark 
       })
       onStartMatch(data.match)
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.error || 'Failed to create match')
+      showAlert('Error', err?.response?.data?.error || 'Failed to create match')
     } finally {
       setCreating(false)
     }

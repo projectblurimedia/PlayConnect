@@ -4,6 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, StatusBar, Platform, Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import { getPlayerProfile, getConnectionStatus, sendConnectionRequest, acceptConnection, rejectConnection } from '../services/api'
@@ -61,7 +62,7 @@ export default function PlayerProfileScreen() {
         setIsSender(true)
       }
     } catch (e) {
-      Alert.alert('Error', e?.response?.data?.error || 'Failed to send request')
+      showAlert('Error', e?.response?.data?.error || 'Failed to send request')
     } finally {
       setConnLoading(false)
     }
@@ -74,7 +75,7 @@ export default function PlayerProfileScreen() {
       await acceptConnection(connInfo.id)
       setConnStatus('ACCEPTED')
     } catch {
-      Alert.alert('Error', 'Failed to accept request')
+      showAlert('Error', 'Failed to accept request')
     } finally {
       setConnLoading(false)
     }
@@ -87,7 +88,7 @@ export default function PlayerProfileScreen() {
       await rejectConnection(connInfo.id)
       setConnStatus('REJECTED')
     } catch {
-      Alert.alert('Error', 'Failed to reject request')
+      showAlert('Error', 'Failed to reject request')
     } finally {
       setConnLoading(false)
     }

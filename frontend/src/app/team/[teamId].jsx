@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useSelector } from 'react-redux'
 import {
   getTeamDetail,
@@ -234,7 +235,7 @@ export default function TeamDetailScreen() {
       setTeam(data.team)
       setIsMember(data.isMember !== false)
     } catch {
-      Alert.alert('Error', 'Could not load team')
+      showAlert('Error', 'Could not load team')
       router.back()
     } finally {
       setLoading(false)
@@ -260,7 +261,7 @@ export default function TeamDetailScreen() {
       setSelectedMember(null)
       load()
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.error || 'Failed to assign role')
+      showAlert('Error', err?.response?.data?.error || 'Failed to assign role')
     } finally {
       setRoleLoading(false)
     }
@@ -268,7 +269,7 @@ export default function TeamDetailScreen() {
 
   const handleRemoveMember = () => {
     setActionsOpen(false)
-    Alert.alert(
+    showAlert(
       'Remove Member',
       `Remove ${selectedMember?.user?.fullName} from the team?`,
       [
@@ -281,7 +282,7 @@ export default function TeamDetailScreen() {
               setSelectedMember(null)
               load()
             } catch (err) {
-              Alert.alert('Error', err?.response?.data?.error || 'Failed to remove member')
+              showAlert('Error', err?.response?.data?.error || 'Failed to remove member')
             }
           },
         },
@@ -290,7 +291,7 @@ export default function TeamDetailScreen() {
   }
 
   const handleLeave = () => {
-    Alert.alert(
+    showAlert(
       isAdmin ? 'Delete Team' : 'Leave Team',
       isAdmin
         ? 'This will permanently delete the team for everyone. Continue?'
@@ -305,7 +306,7 @@ export default function TeamDetailScreen() {
               else await leaveTeam(teamId)
               router.replace('/teams')
             } catch (err) {
-              Alert.alert('Error', err?.response?.data?.error || 'Failed')
+              showAlert('Error', err?.response?.data?.error || 'Failed')
             }
           },
         },

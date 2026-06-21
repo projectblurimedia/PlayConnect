@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { showAlert } from '@/components/GlobalAlert'
 import { useDispatch } from 'react-redux'
 import { setUser } from '../store/userSlice'
 import { sendOTP, verifyOTP } from '../services/api'
@@ -54,7 +55,7 @@ export default function OTPLoginScreen() {
   const handleSendOTP = async () => {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.')
+      showAlert('Invalid Email', 'Please enter a valid email address.')
       return
     }
     setLoading(true)
@@ -66,11 +67,11 @@ export default function OTPLoginScreen() {
         startCountdown()
         setTimeout(() => otpRefs.current[0]?.focus(), 300)
       } else {
-        Alert.alert('Error', res.error || 'Failed to send OTP.')
+        showAlert('Error', res.error || 'Failed to send OTP.')
       }
     } catch (err) {
       const msg = err?.response?.data?.error || 'Could not connect to the server.'
-      Alert.alert('Error', msg)
+      showAlert('Error', msg)
     } finally {
       setLoading(false)
     }
@@ -84,7 +85,7 @@ export default function OTPLoginScreen() {
   const handleVerifyOTP = async () => {
     const code = otp.join('')
     if (code.length < 6) {
-      Alert.alert('Incomplete', 'Please enter the full 6-digit OTP.')
+      showAlert('Incomplete', 'Please enter the full 6-digit OTP.')
       return
     }
     setLoading(true)
@@ -94,11 +95,11 @@ export default function OTPLoginScreen() {
         dispatch(setUser({ user: res.user, token: res.token }))
         router.replace('/home')
       } else {
-        Alert.alert('Invalid OTP', res.error || 'OTP is incorrect or expired.')
+        showAlert('Invalid OTP', res.error || 'OTP is incorrect or expired.')
       }
     } catch (err) {
       const msg = err?.response?.data?.error || 'Could not connect to the server.'
-      Alert.alert('Error', msg)
+      showAlert('Error', msg)
     } finally {
       setLoading(false)
     }

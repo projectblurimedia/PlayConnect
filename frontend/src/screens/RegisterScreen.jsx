@@ -16,6 +16,7 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { MaterialIcons, Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import * as Location from 'expo-location'
 import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
@@ -310,7 +311,7 @@ function StepProfile({ data, onChange, onNext }) {
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photo library.')
+      showAlert('Permission Required', 'Please allow access to your photo library.')
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -328,13 +329,13 @@ function StepProfile({ data, onChange, onNext }) {
         const uploadResult = await uploadProfilePhoto(asset.base64)
         if (uploadResult.success) {
           onChange('profilePhotoUrl', uploadResult.url)
-          Alert.alert('Success', 'Profile photo uploaded!')
+          showAlert('Success', 'Profile photo uploaded!')
         } else {
-          Alert.alert('Upload Failed', uploadResult.error || 'Could not upload photo.')
+          showAlert('Upload Failed', uploadResult.error || 'Could not upload photo.')
           setPhotoUri(null)
         }
       } catch {
-        Alert.alert('Upload Error', 'Could not upload photo. You can skip for now.')
+        showAlert('Upload Error', 'Could not upload photo. You can skip for now.')
         setPhotoUri(null)
       } finally {
         setPhotoUploading(false)
@@ -347,7 +348,7 @@ function StepProfile({ data, onChange, onNext }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required.')
+        showAlert('Permission Denied', 'Location permission is required.')
         return
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
@@ -365,10 +366,10 @@ function StepProfile({ data, onChange, onNext }) {
         onChange('latitude', position.coords.latitude)
         onChange('longitude', position.coords.longitude)
       } else {
-        Alert.alert('Location Error', 'Could not determine address. Please enter manually.')
+        showAlert('Location Error', 'Could not determine address. Please enter manually.')
       }
     } catch {
-      Alert.alert('Error', 'Could not fetch location. Please enter manually.')
+      showAlert('Error', 'Could not fetch location. Please enter manually.')
     } finally {
       setLocationLoading(false)
     }
@@ -826,10 +827,10 @@ export default function RegisterScreen() {
         dispatch(setUser({ user: result.user, token: result.token }))
         router.replace('/home')
       } else {
-        Alert.alert('Registration Failed', result.error || 'Something went wrong. Please try again.')
+        showAlert('Registration Failed', result.error || 'Something went wrong. Please try again.')
       }
     } catch {
-      Alert.alert('Connection Error', 'Could not connect to the server. Please check your internet connection.')
+      showAlert('Connection Error', 'Could not connect to the server. Please check your internet connection.')
     } finally {
       setIsSubmitting(false)
     }

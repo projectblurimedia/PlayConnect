@@ -4,6 +4,7 @@ import {
   StyleSheet, ActivityIndicator, Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import { getMyBookings, cancelGroundBooking } from '../services/api'
@@ -64,7 +65,7 @@ export default function MyBookingsScreen() {
   useFocusEffect(useCallback(() => { load() }, [load]))
 
   const handleCancel = (booking) => {
-    Alert.alert('Cancel Booking', `Cancel slot at ${booking.ground?.name}?`, [
+    showAlert('Cancel Booking', `Cancel slot at ${booking.ground?.name}?`, [
       { text: 'No' },
       {
         text: 'Yes, Cancel', style: 'destructive',
@@ -73,7 +74,7 @@ export default function MyBookingsScreen() {
             await cancelGroundBooking(booking.groundId, booking.id)
             load()
           } catch (e) {
-            Alert.alert('Error', e.response?.data?.error || 'Failed to cancel')
+            showAlert('Error', e.response?.data?.error || 'Failed to cancel')
           }
         },
       },

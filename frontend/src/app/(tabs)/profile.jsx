@@ -91,7 +91,7 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: bg }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} colors={[ACCENT, '#FF6B35', '#7C3AED']} progressBackgroundColor="#fff" />}
     >
       {/* Profile header */}
       <View style={[styles.profileHeader, { backgroundColor: cardBg }]}>

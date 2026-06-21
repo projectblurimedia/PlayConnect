@@ -5,6 +5,7 @@ import {
   Modal, Alert, ScrollView, Dimensions,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import { getFeed, togglePostLike, getPostComments, addPostComment, deletePost } from '../../services/api'
@@ -171,7 +172,7 @@ function PostCard({ post, onComment, onDelete, myUserId, cardBg, textColor, mute
         </View>
         {isMyPost && (
           <TouchableOpacity
-            onPress={() => Alert.alert('Delete Post', 'Remove this post?', [
+            onPress={() => showAlert('Delete Post', 'Remove this post?', [
               { text: 'Cancel' },
               { text: 'Delete', style: 'destructive', onPress: () => onDelete(post.id) },
             ])}
@@ -264,7 +265,7 @@ export default function FeedScreen() {
       await deletePost(postId)
       setPosts(p => p.filter(x => x.id !== postId))
     } catch {
-      Alert.alert('Error', 'Could not delete post')
+      showAlert('Error', 'Could not delete post')
     }
   }
 
@@ -311,6 +312,8 @@ export default function FeedScreen() {
                 refreshing={refreshing}
                 onRefresh={() => { setRefreshing(true); load() }}
                 tintColor={ACCENT}
+                colors={[ACCENT, '#FF6B35', '#7C3AED']}
+                progressBackgroundColor="#fff"
               />
             }
             ListEmptyComponent={

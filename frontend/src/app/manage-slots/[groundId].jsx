@@ -4,6 +4,7 @@ import {
   StyleSheet, ActivityIndicator, Modal, Alert, FlatList, RefreshControl,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import {
@@ -138,7 +139,7 @@ export default function ManageSlotsScreen() {
       const data = await getGroundDetail(groundId)
       setGround(data.ground)
     } catch {
-      Alert.alert('Error', 'Failed to load ground')
+      showAlert('Error', 'Failed to load ground')
     } finally {
       setLoading(false)
     }
@@ -187,14 +188,14 @@ export default function ManageSlotsScreen() {
       setBlockGap(null)
       loadAvailability()
     } catch (e) {
-      Alert.alert('Failed', e.response?.data?.error || 'Could not block this time')
+      showAlert('Failed', e.response?.data?.error || 'Could not block this time')
     } finally {
       setSaving(false)
     }
   }
 
   const handleRemoveBlock = (item) => {
-    Alert.alert('Remove Block', 'Make this time available again?', [
+    showAlert('Remove Block', 'Make this time available again?', [
       { text: 'No' },
       {
         text: 'Yes, Remove', style: 'destructive',
@@ -204,7 +205,7 @@ export default function ManageSlotsScreen() {
             setViewItem(null)
             loadAvailability()
           } catch (e) {
-            Alert.alert('Error', e.response?.data?.error || 'Failed to remove block')
+            showAlert('Error', e.response?.data?.error || 'Failed to remove block')
           }
         },
       },
@@ -212,7 +213,7 @@ export default function ManageSlotsScreen() {
   }
 
   const handleCancelBooking = (item) => {
-    Alert.alert(
+    showAlert(
       'Cancel Booking',
       'Free up this slot? Use this if the player didn\'t show up or there\'s an issue with this booking.',
       [
@@ -225,7 +226,7 @@ export default function ManageSlotsScreen() {
               setViewItem(null)
               loadAvailability()
             } catch (e) {
-              Alert.alert('Error', e.response?.data?.error || 'Failed to cancel booking')
+              showAlert('Error', e.response?.data?.error || 'Failed to cancel booking')
             }
           },
         },
@@ -234,7 +235,7 @@ export default function ManageSlotsScreen() {
   }
 
   const handleLongPressBooking = (item) => {
-    Alert.alert(
+    showAlert(
       'Free This Slot?',
       `${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}\nBooked by: ${item.bookedBy?.fullName || 'Player'}\n\nCancel this booking and make the slot available again?`,
       [
@@ -246,7 +247,7 @@ export default function ManageSlotsScreen() {
               await cancelGroundBooking(groundId, item.id)
               loadAvailability()
             } catch (e) {
-              Alert.alert('Error', e.response?.data?.error || 'Failed to free slot')
+              showAlert('Error', e.response?.data?.error || 'Failed to free slot')
             }
           },
         },
@@ -256,7 +257,7 @@ export default function ManageSlotsScreen() {
 
   const handleBlockDay = () => {
     const hasBookings = (availability?.bookings || []).some(b => b.status === 'BOOKED')
-    Alert.alert(
+    showAlert(
       'Block Entire Day',
       hasBookings
         ? `Block all slots for ${selectedDate}?\n\nThis will cancel ALL existing bookings for this day and make the ground unavailable.`
@@ -271,7 +272,7 @@ export default function ManageSlotsScreen() {
               await blockGroundDay(groundId, selectedDate)
               loadAvailability()
             } catch (e) {
-              Alert.alert('Error', e.response?.data?.error || 'Failed to block day')
+              showAlert('Error', e.response?.data?.error || 'Failed to block day')
             } finally {
               setBlockingDay(false)
             }
@@ -325,7 +326,7 @@ export default function ManageSlotsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} colors={[ACCENT, '#FF6B35', '#7C3AED']} progressBackgroundColor="#fff" />}
       >
         <View style={{ padding: 14, gap: 14 }}>
 

@@ -17,6 +17,7 @@ import {
 } from '@expo-google-fonts/poppins'
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon'
+import { GlobalAlert } from '@/components/GlobalAlert'
 import { store, persistor } from '../store'
 
 SplashScreen.preventAutoHideAsync()
@@ -57,6 +58,7 @@ export default function RootLayout() {
         <ThemeContainer>
           <AnimatedSplashOverlay />
           <Stack screenOptions={{ headerShown: false, animation: 'fade', statusBarTranslucent: true }} />
+          <GlobalAlert />
         </ThemeContainer>
       </PersistGate>
     </Provider>

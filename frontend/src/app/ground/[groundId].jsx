@@ -4,6 +4,7 @@ import {
   StyleSheet, ActivityIndicator, Modal, Alert, FlatList,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import {
@@ -141,7 +142,7 @@ export default function GroundDetailScreen() {
       setGround(data.ground)
       if (data.ground.supportedSports?.[0]) setSelectedSport(data.ground.supportedSports[0])
     } catch {
-      Alert.alert('Error', 'Failed to load ground details')
+      showAlert('Error', 'Failed to load ground details')
     } finally {
       setLoading(false)
     }
@@ -175,7 +176,7 @@ export default function GroundDetailScreen() {
   }
 
   const handleConfirmBooking = async () => {
-    if (!bookForm.sport) return Alert.alert('Missing', 'Please select a sport')
+    if (!bookForm.sport) return showAlert('Missing', 'Please select a sport')
     setBooking(true)
     try {
       await createGroundBooking(groundId, {
@@ -186,16 +187,16 @@ export default function GroundDetailScreen() {
       })
       setBookGap(null)
       loadAvailability()
-      Alert.alert('Booked!', 'Your slot has been booked. Pay at venue.')
+      showAlert('Booked!', 'Your slot has been booked. Pay at venue.')
     } catch (e) {
-      Alert.alert('Failed', e.response?.data?.error || 'Booking failed')
+      showAlert('Failed', e.response?.data?.error || 'Booking failed')
     } finally {
       setBooking(false)
     }
   }
 
   const handleCancel = (item) => {
-    Alert.alert('Cancel Booking', 'Cancel this booking?', [
+    showAlert('Cancel Booking', 'Cancel this booking?', [
       { text: 'No' },
       {
         text: 'Yes, Cancel', style: 'destructive',
@@ -205,7 +206,7 @@ export default function GroundDetailScreen() {
             setViewBooking(null)
             loadAvailability()
           } catch (e) {
-            Alert.alert('Error', e.response?.data?.error || 'Failed to cancel')
+            showAlert('Error', e.response?.data?.error || 'Failed to cancel')
           }
         },
       },

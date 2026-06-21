@@ -4,6 +4,7 @@ import {
   Image, ActivityIndicator, RefreshControl, StatusBar, Platform, Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useSelector } from 'react-redux'
 import { useRouter } from 'expo-router'
 import {
@@ -87,7 +88,7 @@ export default function NotificationsScreen() {
       await markAllNotificationsRead()
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     } catch {
-      Alert.alert('Error', 'Failed to mark all as read')
+      showAlert('Error', 'Failed to mark all as read')
     }
   }
 
@@ -102,7 +103,7 @@ export default function NotificationsScreen() {
         n.id === notif.id ? { ...n, read: true, _accepted: true } : n
       ))
     } catch {
-      Alert.alert('Error', 'Failed to accept connection')
+      showAlert('Error', 'Failed to accept connection')
     } finally {
       setActionLoading(prev => ({ ...prev, [notif.id]: null }))
     }
@@ -119,7 +120,7 @@ export default function NotificationsScreen() {
         n.id === notif.id ? { ...n, read: true, _rejected: true } : n
       ))
     } catch {
-      Alert.alert('Error', 'Failed to reject connection')
+      showAlert('Error', 'Failed to reject connection')
     } finally {
       setActionLoading(prev => ({ ...prev, [notif.id]: null }))
     }
@@ -212,7 +213,7 @@ export default function NotificationsScreen() {
             data={notifications}
             keyExtractor={item => item.id}
             renderItem={renderItem}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} />}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACCENT} colors={[ACCENT, '#FF6B35', '#7C3AED']} progressBackgroundColor="#fff" />}
             ListEmptyComponent={
               <View style={styles.emptyWrap}>
                 <Ionicons name="notifications-outline" size={56} color={isDark ? '#333' : '#ddd'} />

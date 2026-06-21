@@ -15,6 +15,7 @@ import {
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
 import * as Location from 'expo-location'
@@ -164,8 +165,8 @@ function NavRow({ onBack, onNext, nextLabel = 'Next', isSubmit = false, disabled
 
 function StepIdentity({ data, onChange, onNext }) {
   const validate = () => {
-    if (!data.name?.trim()) return Alert.alert('Required', 'Ground name is required')
-    if (!data.contactPhone?.trim()) return Alert.alert('Required', 'Contact phone is required')
+    if (!data.name?.trim()) return showAlert('Required', 'Ground name is required')
+    if (!data.contactPhone?.trim()) return showAlert('Required', 'Contact phone is required')
     onNext()
   }
 
@@ -230,7 +231,7 @@ function StepLocation({ data, onChange, onNext, onBack }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required to auto-fill address.')
+        showAlert('Permission Denied', 'Location permission is required to auto-fill address.')
         return
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
@@ -246,20 +247,20 @@ function StepLocation({ data, onChange, onNext, onBack }) {
         onChange('latitude', String(position.coords.latitude))
         onChange('longitude', String(position.coords.longitude))
       } else {
-        Alert.alert('Location Error', 'Could not determine address. Please enter manually.')
+        showAlert('Location Error', 'Could not determine address. Please enter manually.')
       }
     } catch {
-      Alert.alert('Error', 'Could not fetch location. Please enter manually.')
+      showAlert('Error', 'Could not fetch location. Please enter manually.')
     } finally {
       setLocLoading(false)
     }
   }
 
   const validate = () => {
-    if (!data.addressLine?.trim()) return Alert.alert('Required', 'Address is required')
-    if (!data.city?.trim()) return Alert.alert('Required', 'City is required')
-    if (!data.state?.trim()) return Alert.alert('Required', 'State is required')
-    if (!data.pincode?.trim()) return Alert.alert('Required', 'Pincode is required')
+    if (!data.addressLine?.trim()) return showAlert('Required', 'Address is required')
+    if (!data.city?.trim()) return showAlert('Required', 'City is required')
+    if (!data.state?.trim()) return showAlert('Required', 'State is required')
+    if (!data.pincode?.trim()) return showAlert('Required', 'Pincode is required')
     onNext()
   }
 
@@ -387,13 +388,13 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
 
   const validate = () => {
     if (!(data.supportedSports || []).length)
-      return Alert.alert('Required', 'Select at least one sport')
+      return showAlert('Required', 'Select at least one sport')
     if (!data.groundType)
-      return Alert.alert('Required', 'Select a venue type')
+      return showAlert('Required', 'Select a venue type')
     if (!data.openTime || !data.closeTime)
-      return Alert.alert('Required', 'Set your daily opening and closing times')
+      return showAlert('Required', 'Set your daily opening and closing times')
     if (data.openTime >= data.closeTime)
-      return Alert.alert('Invalid', 'Closing time must be after opening time')
+      return showAlert('Invalid', 'Closing time must be after opening time')
     onNext()
   }
 
@@ -535,8 +536,8 @@ function StepFacilities({ data, onChange, onNext, onBack }) {
 
 function StepPricing({ data, onChange, onNext, onBack }) {
   const validate = () => {
-    if (!data.pricePerHour?.trim()) return Alert.alert('Required', 'Price per hour is required')
-    if (isNaN(parseFloat(data.pricePerHour))) return Alert.alert('Invalid', 'Enter a valid price')
+    if (!data.pricePerHour?.trim()) return showAlert('Required', 'Price per hour is required')
+    if (isNaN(parseFloat(data.pricePerHour))) return showAlert('Invalid', 'Enter a valid price')
     onNext()
   }
 
@@ -613,7 +614,7 @@ function StepPhotos({ data, onChange, onNext, onBack }) {
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Allow access to your photo library to add ground photos.')
+      showAlert('Permission needed', 'Allow access to your photo library to add ground photos.')
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -661,12 +662,12 @@ function StepPhotos({ data, onChange, onNext, onBack }) {
 
   const handleNext = () => {
     if (anyUploading) {
-      Alert.alert('Please wait', 'Photos are still uploading…')
+      showAlert('Please wait', 'Photos are still uploading…')
       return
     }
     const failed = photos.filter((p) => p?.error)
     if (failed.length > 0) {
-      Alert.alert('Upload failed', `${failed.length} photo(s) failed to upload. Remove them and try again.`)
+      showAlert('Upload failed', `${failed.length} photo(s) failed to upload. Remove them and try again.`)
       return
     }
     onNext()
@@ -927,10 +928,10 @@ const GroundRegisterScreen = () => {
       if (result.success) {
         setSubmitted(true)
       } else {
-        Alert.alert('Error', result.error || 'Registration failed')
+        showAlert('Error', result.error || 'Registration failed')
       }
     } catch (err) {
-      Alert.alert('Error', err?.response?.data?.error || 'Could not connect to server')
+      showAlert('Error', err?.response?.data?.error || 'Could not connect to server')
     } finally {
       setSubmitting(false)
     }

@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { forgotPasswordSendOTP, resetPassword } from '../services/api'
+import { showAlert } from '@/components/GlobalAlert'
 
 const ACCENT = '#C8102E'
 
@@ -56,7 +57,7 @@ export default function ForgotPasswordScreen() {
   const handleSendOTP = async () => {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address.')
+      showAlert('Invalid Email', 'Please enter a valid email address.')
       return
     }
     setLoading(true)
@@ -68,11 +69,11 @@ export default function ForgotPasswordScreen() {
         startCountdown()
         setTimeout(() => otpRefs.current[0]?.focus(), 300)
       } else {
-        Alert.alert('Error', res.error || 'Failed to send OTP.')
+        showAlert('Error', res.error || 'Failed to send OTP.')
       }
     } catch (err) {
       const msg = err?.response?.data?.error || 'Could not connect to the server.'
-      Alert.alert('Error', msg)
+      showAlert('Error', msg)
     } finally {
       setLoading(false)
     }
@@ -102,30 +103,30 @@ export default function ForgotPasswordScreen() {
   const handleReset = async () => {
     const code = otp.join('')
     if (code.length < 6) {
-      Alert.alert('Incomplete', 'Please enter the full 6-digit OTP.')
+      showAlert('Incomplete', 'Please enter the full 6-digit OTP.')
       return
     }
     if (!newPassword || newPassword.length < 6) {
-      Alert.alert('Invalid Password', 'Password must be at least 6 characters.')
+      showAlert('Invalid Password', 'Password must be at least 6 characters.')
       return
     }
     if (newPassword !== confirmPass) {
-      Alert.alert('Mismatch', 'Passwords do not match.')
+      showAlert('Mismatch', 'Passwords do not match.')
       return
     }
     setLoading(true)
     try {
       const res = await resetPassword({ email: email.trim().toLowerCase(), otp: code, newPassword })
       if (res.success) {
-        Alert.alert('Success', res.message || 'Password reset successfully!', [
+        showAlert('Success', res.message || 'Password reset successfully!', [
           { text: 'Login', onPress: () => router.replace('/(auth)/login') },
         ])
       } else {
-        Alert.alert('Error', res.error || 'Failed to reset password.')
+        showAlert('Error', res.error || 'Failed to reset password.')
       }
     } catch (err) {
       const msg = err?.response?.data?.error || 'Could not connect to the server.'
-      Alert.alert('Error', msg)
+      showAlert('Error', msg)
     } finally {
       setLoading(false)
     }

@@ -5,6 +5,7 @@ import {
   Modal, Alert, Image, Animated, PanResponder,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { showAlert } from '@/components/GlobalAlert'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSelector } from 'react-redux'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -434,13 +435,13 @@ export default function ChatScreen() {
   const handleForward = async (toId) => {
     setForwardVisible(false)
     if (!forwardingMsg) return
-    try   { await forwardMessage(forwardingMsg.id, toId); Alert.alert('Forwarded', 'Message forwarded successfully') }
-    catch { Alert.alert('Error', 'Failed to forward message') }
+    try   { await forwardMessage(forwardingMsg.id, toId); showAlert('Forwarded', 'Message forwarded successfully') }
+    catch { showAlert('Error', 'Failed to forward message') }
   }
 
   const handleClearChat = () => {
     setOptionsVisible(false)
-    Alert.alert(
+    showAlert(
       'Clear Chat',
       'This will clear all messages in this chat for you. Are you sure?',
       [
@@ -682,7 +683,7 @@ export default function ChatScreen() {
             color: isDark ? '#f0f0f0' : '#111',
             onPress: () => {
               setOptionsVisible(false)
-              Alert.alert('Report', 'Report sent. Our team will review this conversation.')
+              showAlert('Report', 'Report sent. Our team will review this conversation.')
             },
           },
           {
@@ -691,9 +692,9 @@ export default function ChatScreen() {
             color: '#f97316',
             onPress: () => {
               setOptionsVisible(false)
-              Alert.alert('Block User', `Block ${displayName}?`, [
+              showAlert('Block User', `Block ${displayName}?`, [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Block', style: 'destructive', onPress: () => Alert.alert('Blocked', `${displayName} has been blocked.`) },
+                { text: 'Block', style: 'destructive', onPress: () => showAlert('Blocked', `${displayName} has been blocked.`) },
               ])
             },
           },
